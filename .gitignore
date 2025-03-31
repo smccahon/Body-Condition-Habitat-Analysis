@@ -1,0 +1,14 @@
+.Rproj.user/
+output/
+processed_data/
+raw_data/
+top_model_plots/
+.Rhistory
+*.docx
+*.jpg
+*.png
+*.tiff
+*.tif
+*.xlsx
+*.jpeg
+*.pptx
