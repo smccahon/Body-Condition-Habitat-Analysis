@@ -512,7 +512,7 @@ m3 <- nls(PC1 ~ beta0 + beta1*PercentAg + beta2*I(PercentAg^2),
           data = leye,
           start = list(beta0 = 0, beta1 = 0, beta2 = 0))
 
-model_names <- paste0("m", 2:3)
+model_names <- paste0("m", 1:3)
 
 models <- mget(model_names)
 
@@ -524,14 +524,18 @@ summary(m1) # not significant
 summary(m2) # significant
 summary(m3) # significant   
 
+confint(m3)
+confint(m2)
+trtools::lincon(m1, fcov=vcov)
 
 # ...plot model of ag with exponential decay transformation---------------------
 m <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a), 
          data = leye,
          start = list(beta0 = 2, beta1 = 2, a = 40),
-         control = nls.control(maxiter = 500))
+         control = nls.control(maxiter = 1000))
 
 summary(m)
+nlsint(m)
 
 d <- expand.grid(PercentAg = seq(min(leye$PercentAg), 
                                  max(leye$PercentAg), 
@@ -915,3 +919,87 @@ aictab(models, modnames = model_names)
 # linear is best
 
 
+# standardize time to something more simple ------------------------------------
+leye$Time <- strptime(leye$Time, format = "%H:%M")
+leye$Time <- as.POSIXct(leye$Time, tz = "America/Chicago")
+attributes(leye$Time)$tzone
+
+# Calculate seconds since midnight (start of the day)
+leye$seconds_since_midnight <- as.numeric(difftime(leye$Time, 
+                                                   floor_date(leye$Time, "day"), 
+                                                   units = "secs"))
+
+# Check the first few values to confirm
+head(leye$seconds_since_midnight)
+
+# cosine and sine
+m <- lm(PC1 ~ seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)) +  
+          cos(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye)
+
+# just sin
+m <- lm(PC1 ~ seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye)
+
+summary(m)
+
+
+d <- expand.grid(seconds_since_midnight = seq(min(leye$seconds_since_midnight), 
+                                  max(leye$seconds_since_midnight), 
+                                  length.out = 1000))
+
+predictions <- predict(m, newdata = d)
+
+d$yhat <- predictions
+
+d$yhat <- predict(m, newdata = d)
+
+d$se <- predict(m, newdata = d, se.fit = TRUE)$se.fit
+d$lower <- d$yhat - 2*d$se
+d$upper <- d$yhat + 2*d$se
+
+ggplot(d, aes(x = seconds_since_midnight, y = yhat)) +
+  geom_line(size = 1) +  
+  theme_classic() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  labs(x = "Time of Capture", 
+       y = "Lesser Yellowlegs Fattening Index") +
+  theme(axis.title.x = element_text(size = 21,
+                                    margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21,
+                                    margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.position = "top") +
+  geom_hline(yintercept = 0, linetype = "twodash", color = "red",
+             size = 1) +
+  geom_point(data = leye, aes(x = seconds_since_midnight, y = PC1), size = 3) +
+  scale_x_time(labels = scales::time_format("%H:%M"),
+               breaks = seq(0, 86400, by = 7200))
+
+plot(predict(m), rstudent(m))
+
+# do I need both sine and cosine?
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)) +  
+          cos(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye)
+
+# just sin
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye)
+
+model_names <- paste0("m", 1:2)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# you need both sine and cosine in model
+
+     
