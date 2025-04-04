@@ -1,7 +1,7 @@
 #----------------------------------------------------#
 # Lesser Yellowlegs Refueling Rates Habitat Analysis #
 #             Non-linear regression                  #
-#               Created 2025-04-01                   #
+#               Created 2025-04-03                   #
 #              Modified 2025-04-03                   #
 #----------------------------------------------------#
 
@@ -22,21 +22,6 @@ birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
 # neonicotinoid detection column
 birds$Detection <- ifelse(birds$OverallNeonic > 0, 
                           "Detection", "Non-detection")
-
-# convert capture time to number of minutes after sunrise
-birds <- birds %>%
-  mutate(
-    hour_of_day = as.numeric(format(strptime(Time, "%H:%M"), "%H")),  # Extract hour (0-23)
-    minute_of_day = as.numeric(format(strptime(Time, "%H:%M"), "%M")),  # Extract minute (0-59)
-    time_in_minutes = hour_of_day * 60 + minute_of_day  # Total time in minutes
-  ) %>% 
-  mutate(
-    hour_of_day_s = as.numeric(format(strptime(Sunrise, "%H:%M"), "%H")),  # Extract hour (0-23)
-    minute_of_day_s = as.numeric(format(strptime(Sunrise, "%H:%M"), "%M")),  # Extract minute (0-59)
-    time_in_minutes_s = hour_of_day_s * 60 + minute_of_day_s  # Total time in minutes
-  ) %>% 
-  mutate(
-    ts.sunrise = time_in_minutes - time_in_minutes_s)
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
@@ -80,13 +65,26 @@ leye$Event <- factor(leye$Event,
                      levels = c("Fall 2021", "Spring 2022", "Fall 2023"),
                      labels = c("Fall 2021", "Spring 2022", "Fall 2023"))
 
+# standardize time to something more simple ------------------------------------
+leye$Time <- strptime(leye$Time, format = "%H:%M")
+leye$Time <- as.POSIXct(leye$Time, tz = "America/Chicago")
+attributes(leye$Time)$tzone
+
+# Calculate seconds since midnight (start of the day)
+leye$seconds_since_midnight <- as.numeric(difftime(leye$Time, 
+                                                   floor_date(leye$Time, "day"), 
+                                                   units = "secs"))
+
+leye$sin <- sin(2 * pi * leye$seconds_since_midnight / (24 * 3600))
+leye$cos <- cos(2 * pi * leye$seconds_since_midnight / (24 * 3600))
+
 # filter birds that only contain metabolite information (n = 29)
 leye <- leye %>% 
   filter(!is.na(Tri) & !is.na(Beta))
 
 # is there enough variation in buffer presence?
-table(leye$Buffered) # nope
-table(birds$Buffered) # also nope
+# table(leye$Buffered) # nope
+# table(birds$Buffered) # also nope
 
 # Perform PCA ------------------------------------------------------------------
 
@@ -126,10 +124,14 @@ leye$PC2 <- NA  # Initialize with NA values
 leye[complete.cases(leye_subset), "PC1"] <- pca_scores[, 1]
 leye[complete.cases(leye_subset), "PC2"] <- pca_scores[, 2]
 
+# should i be standardizing my data?
+leye.cs <- leye %>%
+  mutate(across(where(is.numeric), scale))
+
 # Test for Correlations--------------------------------------------------------- 
 
 # subset data
-sample <- birds[, c("PercentAg",
+sample <- leye[, c("PercentAg",
                     "Percent_Total_Veg",
                     "Event",
                     "Sex",
@@ -138,7 +140,7 @@ sample <- birds[, c("PercentAg",
                     "Permanence",
                     "Percent_Exposed_Shoreline",
                     "Detection",
-                    "ts.sunrise",
+                    "seconds_since_midnight",
                     "Site",
                     "AgCategory",
                     "SPEI",
@@ -147,8 +149,7 @@ sample <- birds[, c("PercentAg",
                     "DominantCrop",
                     "NearestCropDistance_m",
                     "Dist_Closest_Wetland_m",
-                    "Max_Flock_Size",
-                    "ts.sunrise"
+                    "Max_Flock_Size"
 )]
 
 # convert categorical to numeric for correlation matrix
@@ -164,13 +165,27 @@ sample$Age <- as.numeric(sample$Age)
 cor(sample)
 
 # ...covariates with > 0.6 correlation ----
+# All Birds:
 # PercentAg & AgCategory (0.84)
 # DominantCrop & PercentAg (0.72)
 # AgCategory & DominantCrop (0.64)
 # Percent_Total_Veg & Percent_Exposed_Shoreline (-0.61)
 # Julian & SPEI (-0.67)
 
-# which correlated covariates should I drop? -----------------------------------
+# LEYE refueling specifically (n = 29):
+# PercentVeg + Dominant Crop (-0.71)
+# PercentAg & AgCategory (0.80)
+# PercentAg + Dominant Crop (0.62)
+# NearestCropDistance + PercentAg (-0.656)
+# permanence and exposed shoreline (-0.62)
+# Ag Category and permanence (-0.94)
+# SPEI & %exposed shoreline (-0.63)
+# Ag category & nearest crop distance (-0.73)
+# SPEI and permanence (-0.94)
+# Max flock size and dominant crop (0.69)
+
+
+# which correlated covariates should I drop? REDO THIS WHOLE SECTION FOR LEYE---
 
 # agriculture
 m1 <- lm(PC1 ~ PercentAg, data = leye)
@@ -184,29 +199,6 @@ aictab(models, modnames = model_names)
 
 # % ag is a much better predictor
 
-# weather and time
-m1 <- lm(PC1 ~ SPEI, data = leye)
-m2 <- lm(PC1 ~ Julian, data = leye)
-
-model_names <- paste0("m", 1:2)
-
-models <- mget(model_names)
-
-aictab(models, modnames = model_names)
-
-# if included in the same model, Julian better predictor
-
-# habitat and vegetation
-m1 <- lm(PC1 ~ Percent_Total_Veg, data = leye)
-m2 <- lm(PC1 ~ Percent_Exposed_Shoreline, data = leye)
-
-model_names <- paste0("m", 1:2)
-
-models <- mget(model_names)
-
-aictab(models, modnames = model_names)
-
-# if included in the same model, % exposed shoreline better predictor
 
 # which data variable to use for LEYE? -----------------------------------------
 m1 <- lm(PC1 ~ DaysIntoSeason, data = leye)
@@ -220,33 +212,108 @@ aictab(models, modnames = model_names)
 
 # Julian is better
 
-# Modeling time (linear) & Percent Ag (linear)----------------------------------
+# Modeling time & Percent Ag (linear)----------------------------------
 
 # agriculture
-m1 <- lm(PC1 ~ PercentAg + ts.sunrise, data = leye)
+m1 <- lm(PC1 ~ PercentAg + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # vegetation
-m2 <- lm(PC1 ~ Percent_Total_Veg + ts.sunrise, data = leye)
+m2 <- lm(PC1 ~ Percent_Total_Veg + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # habitat
-m3 <- lm(PC1 ~ Permanence + ts.sunrise, data = leye)
-m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + ts.sunrise, data = leye)
-m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + ts.sunrise, data = leye)
+m3 <- lm(PC1 ~ Permanence + seconds_since_midnight + 
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight + 
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +             
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight +  
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) + 
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # weather
-m6 <- lm(PC1 ~ SPEI + ts.sunrise, data = leye)
+m6 <- lm(PC1 ~ SPEI + seconds_since_midnight + 
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) + 
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # life history
-m7 <- lm(PC1 ~ Age + ts.sunrise, data = leye)
-m8 <- lm(PC1 ~ Sex + ts.sunrise, data = leye)
+m7 <- lm(PC1 ~ Age + seconds_since_midnight + 
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) + 
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m8 <- lm(PC1 ~ Sex + seconds_since_midnight + 
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) + 
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # temporal
-m9 <- lm(PC1 ~ Julian + ts.sunrise, data = leye)
-m10 <- lm(PC1 ~ Event + ts.sunrise, data = leye)
-m11 <- lm(PC1 ~ ts.sunrise, data = leye)
+m9 <- lm(PC1 ~ Julian + seconds_since_midnight +            
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +             
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m10 <- lm(PC1 ~ Event + seconds_since_midnight +            
+            sin(2 * pi * seconds_since_midnight / (24 * 3600)) +             
+            cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m11 <- lm(PC1 ~ seconds_since_midnight +            
+            sin(2 * pi * seconds_since_midnight / (24 * 3600)) +             
+            cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
 
 # flock
-m12 <- lm(PC1 ~ Max_Flock_Size + ts.sunrise, data = leye)
+m12 <- lm(PC1 ~ Max_Flock_Size + seconds_since_midnight +           
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)) +             
+          cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+
+
+# STANDARDIZED ##
+# agriculture
+m1 <- lm(PC1 ~ PercentAg + seconds_since_midnight + sin + cos, data = leye.cs)
+
+# vegetation
+m2 <- lm(PC1 ~ Percent_Total_Veg + seconds_since_midnight +
+           sin +
+           cos, data = leye.cs)
+
+# habitat
+m3 <- lm(PC1 ~ Permanence + seconds_since_midnight + 
+           sin +
+           cos, data = leye.cs)
+m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight + 
+           sin +             
+           cos, data = leye.cs)
+m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight +  
+           sin + 
+           cos, data = leye.cs)
+
+# weather
+m6 <- lm(PC1 ~ SPEI + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.cs)
+
+# life history
+m7 <- lm(PC1 ~ Age + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.cs)
+m8 <- lm(PC1 ~ Sex + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.cs)
+
+# temporal
+m9 <- lm(PC1 ~ Julian + seconds_since_midnight +            
+           sin +             
+           cos, data = leye.cs)
+m10 <- lm(PC1 ~ Event + seconds_since_midnight +            
+            sin +             
+            cos, data = leye.cs)
+m11 <- lm(PC1 ~ seconds_since_midnight +            
+            sin +             
+            cos, data = leye.cs)
+
+# flock
+m12 <- lm(PC1 ~ Max_Flock_Size + seconds_since_midnight +           
+            sin +             
+            cos, data = leye.cs)
+
 
 model_names <- paste0("m", 1:12)
 
@@ -254,39 +321,46 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-# important parameters: permanence, dist to wetland, surrounding ag,
-#                       shorebird abundance, time
+# important parameters: time only
 
-confint(m4)
+confint(m8)
+plot(predict(m11),rstudent(m11))
 
 
-# Modeling time (linear) & Percent Ag (quadratic)-------------------------------
+# Modeling time & Percent Ag (quadratic)-------------------------------
 
 # agriculture
-m1 <- lm(PC1 ~ PercentAg + I(PercentAg^2) + ts.sunrise, data = leye)
+m1 <- lm(PC1 ~ PercentAg + I(PercentAg^2) + seconds_since_midnight +
+           sin + cos, data = leye.cs)
 
 # vegetation
-m2 <- lm(PC1 ~ Percent_Total_Veg + ts.sunrise, data = leye)
+m2 <- lm(PC1 ~ Percent_Total_Veg + seconds_since_midnight +
+           sin + cos, data = leye.cs)
 
 # habitat
-m3 <- lm(PC1 ~ Permanence + ts.sunrise, data = leye)
-m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + ts.sunrise, data = leye)
-m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + ts.sunrise, data = leye)
+m3 <- lm(PC1 ~ Permanence + seconds_since_midnight +
+           sin + cos, data = leye.cs)
+m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight +
+           sin + cos, data = leye.cs)
+m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight +
+           sin + cos, data = leye.cs)
 
 # weather
-m6 <- lm(PC1 ~ SPEI + ts.sunrise, data = leye)
+m6 <- lm(PC1 ~ SPEI + seconds_since_midnight +
+           sin + cos, data = leye.cs)
 
 # life history
-m7 <- lm(PC1 ~ Age + ts.sunrise, data = leye)
-m8 <- lm(PC1 ~ Sex + ts.sunrise, data = leye)
+m7 <- lm(PC1 ~ Age + seconds_since_midnight + sin + cos, data = leye.cs)
+m8 <- lm(PC1 ~ Sex + seconds_since_midnight + sin + cos, data = leye.cs)
 
 # temporal
-m9 <- lm(PC1 ~ Julian + ts.sunrise, data = leye)
-m10 <- lm(PC1 ~ Event + ts.sunrise, data = leye)
-m11 <- lm(PC1 ~ ts.sunrise, data = leye)
+m9 <- lm(PC1 ~ Julian + seconds_since_midnight + sin + cos, data = leye.cs)
+m10 <- lm(PC1 ~ Event + seconds_since_midnight + sin + cos, data = leye.cs)
+m11 <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.cs)
 
 # flock
-m12 <- lm(PC1 ~ Max_Flock_Size + ts.sunrise, data = leye)
+m12 <- lm(PC1 ~ Max_Flock_Size + seconds_since_midnight +
+            sin + cos, data = leye.cs)
 
 model_names <- paste0("m", 1:12)
 
@@ -298,108 +372,37 @@ aictab(models, modnames = model_names)
 #                       dist to closest wetland, shorebird abundance
 
 
-confint(m11)
+confint(m5)
 
 
-# Modeling (time^3) & Percent Ag (linear)---------------------------------------
+# Modeling time & Percent Ag (exponential)--------------------------------------
 
-# agriculture
-m1 <- lm(PC1 ~ PercentAg + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
+## CAN'T FIND GOOD STARTING VALUES!!
+lm_model <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.cs)
 
-# vegetation
-m2 <- lm(PC1 ~ Percent_Total_Veg + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
+m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a), 
+          data = leye.cs,
+          start = list(beta0 = 2, beta1 = 2, a = 40),
+          control = nls.control(maxiter = 500))
 
-# habitat
-m3 <- lm(PC1 ~ Permanence + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
+m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a) + 
+            beta2 * seconds_since_midnight + 
+            beta3 * sin +
+            beta4 * cos, 
+          data = leye.cs,
+          start = list(beta0 = 2, beta1 = 2, a = 40, 
+                       beta2 = 0, 
+                       beta3 = 0,
+                       beta4 = 0),
+          control = nls.control(maxiter = 1000))
 
-# weather
-m6 <- lm(PC1 ~ SPEI + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# life history
-m7 <- lm(PC1 ~ Age + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m8 <- lm(PC1 ~ Sex + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# temporal
-m9 <- lm(PC1 ~ Julian + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m10 <- lm(PC1 ~ Event + ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-m11 <- lm(PC1 ~ ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-
-# flock
-m12 <- lm(PC1 ~ Max_Flock_Size + ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-
-model_names <- paste0("m", 1:12)
-
-models <- mget(model_names)
-
-aictab(models, modnames = model_names)
+m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a) +
+            beta2 * seconds_since_midnight +
+  beta3 * sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+  beta4 * cos(2 * pi * seconds_since_midnight / (24 * 3600)),
+  data = leye,
+  start = list(beta0 = 2, beta1 = 2, a = 40, beta2 = 0, beta3 = 0,
+              beta4 = 0),
+  control = nls.control(maxiter = 100))
 
 summary(m1)
-confint(m1)
-
-# important parameters: time, (dist to wetland marginally significant)
-
-# Modeling (time^3) & Percent Ag (quadratic)------------------------------------
-
-# agriculture
-m1 <- lm(PC1 ~ PercentAg + I(PercentAg^2) + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# vegetation
-m2 <- lm(PC1 ~ Percent_Total_Veg + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# habitat
-m3 <- lm(PC1 ~ Permanence + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# weather
-m6 <- lm(PC1 ~ SPEI + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# life history
-m7 <- lm(PC1 ~ Age + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m8 <- lm(PC1 ~ Sex + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-
-# temporal
-m9 <- lm(PC1 ~ Julian + ts.sunrise + I(ts.sunrise^2) +
-           I(ts.sunrise^3), data = leye)
-m10 <- lm(PC1 ~ Event + ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-m11 <- lm(PC1 ~ ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-
-# flock
-m12 <- lm(PC1 ~ Max_Flock_Size + ts.sunrise + I(ts.sunrise^2) +
-            I(ts.sunrise^3), data = leye)
-
-model_names <- paste0("m", 1:12)
-
-models <- mget(model_names)
-
-aictab(models, modnames = model_names)
-
-# important parameters: 
-
-
-confint(m10)
-
