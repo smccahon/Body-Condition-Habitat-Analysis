@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Refueling Rates Habitat Analysis #
 #             Non-linear regression                  #
 #               Created 2025-04-03                   #
-#              Modified 2025-04-03                   #
+#              Modified 2025-04-07                   #
 #----------------------------------------------------#
 
 # load packages
@@ -13,7 +13,7 @@ library(trtools)
 library(lme4)
 library(car)
 library(viridis)
-
+library(lubridate)
 
 # read data
 birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
@@ -124,7 +124,7 @@ leye$PC2 <- NA  # Initialize with NA values
 leye[complete.cases(leye_subset), "PC1"] <- pca_scores[, 1]
 leye[complete.cases(leye_subset), "PC2"] <- pca_scores[, 2]
 
-# should i be standardizing my data?
+# standardize data
 leye.cs <- leye %>%
   mutate(across(where(is.numeric), scale))
 
@@ -164,6 +164,10 @@ sample$Age <- as.numeric(sample$Age)
 
 cor(sample)
 
+# leye$PercentAg <- scale(leye$PercentAg)
+cor(leye$PercentAg, leye$sin)
+cor(leye$PercentAg, leye$cos)
+
 # ...covariates with > 0.6 correlation ----
 # All Birds:
 # PercentAg & AgCategory (0.84)
@@ -185,7 +189,8 @@ cor(sample)
 # Max flock size and dominant crop (0.69)
 
 
-# which correlated covariates should I drop? REDO THIS WHOLE SECTION FOR LEYE---
+# which correlated covariates should I drop? -----------------------------------
+# REDO THIS WHOLE SECTION FOR LEYE if you're doing stage 2 ----
 
 # agriculture
 m1 <- lm(PC1 ~ PercentAg, data = leye)
@@ -326,83 +331,152 @@ aictab(models, modnames = model_names)
 confint(m8)
 plot(predict(m11),rstudent(m11))
 
+# Plot PC1 ~ PercentAg + Time --------------------------------------------------
+leye$formatted_time <- format(as.POSIXct(leye$seconds_since_midnight, 
+                                         origin = "1970-01-01", tz = "UTC"), 
+                              "%H:%M")
 
-# Modeling time & Percent Ag (quadratic)-------------------------------
 
-# agriculture
-m1 <- lm(PC1 ~ PercentAg + I(PercentAg^2) + seconds_since_midnight +
-           sin + cos, data = leye.cs)
 
-# vegetation
-m2 <- lm(PC1 ~ Percent_Total_Veg + seconds_since_midnight +
-           sin + cos, data = leye.cs)
 
-# habitat
-m3 <- lm(PC1 ~ Permanence + seconds_since_midnight +
-           sin + cos, data = leye.cs)
-m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight +
-           sin + cos, data = leye.cs)
-m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight +
-           sin + cos, data = leye.cs)
+m <- lm(PC1 ~ PercentAg + seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)) +  
+          cos(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye)
 
-# weather
-m6 <- lm(PC1 ~ SPEI + seconds_since_midnight +
-           sin + cos, data = leye.cs)
+d <- expand.grid(PercentAg = seq(min(leye$PercentAg), 
+                                 max(leye$PercentAg), 
+                                 length.out = 1000),
+                 seconds_since_midnight = mean(leye$seconds_since_midnight))
 
-# life history
-m7 <- lm(PC1 ~ Age + seconds_since_midnight + sin + cos, data = leye.cs)
-m8 <- lm(PC1 ~ Sex + seconds_since_midnight + sin + cos, data = leye.cs)
+predictions <- predict(m, newdata = d)
 
-# temporal
-m9 <- lm(PC1 ~ Julian + seconds_since_midnight + sin + cos, data = leye.cs)
-m10 <- lm(PC1 ~ Event + seconds_since_midnight + sin + cos, data = leye.cs)
-m11 <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.cs)
+d$yhat <- predictions
 
-# flock
-m12 <- lm(PC1 ~ Max_Flock_Size + seconds_since_midnight +
-            sin + cos, data = leye.cs)
+d$yhat <- predict(m, newdata = d)
 
-model_names <- paste0("m", 1:12)
+d$se <- predict(m, newdata = d, se.fit = TRUE)$se.fit
+d$lower <- d$yhat - 2*d$se
+d$upper <- d$yhat + 2*d$se
+
+ggplot(d, aes(x = PercentAg, y = yhat)) +
+  geom_line(size = 1) +  
+  theme_classic() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  labs(x = "% Surrounding Ag within 500 m", 
+       y = "Lesser Yellowlegs Fattening Index") +
+  theme(axis.title.x = element_text(size = 21,
+                                    margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21,
+                                    margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.position = "none") +
+  geom_hline(yintercept = 0, linetype = "twodash", color = "red",
+             size = 1) +
+  geom_point(data = leye, aes(x = PercentAg, y = PC1, 
+                              col = formatted_time), size = 3) +
+  scale_color_viridis_d(alpha = 1, begin = 1, end = 0) +
+  geom_text(data = leye, aes(x = PercentAg, y = PC1, 
+                             label = Site), 
+            size = 3, vjust = -0.5) 
+
+
+# % ag and time are correlated...which is a better fit? ------------------------
+
+m1 <- lm(PC1 ~ PercentAg, data = leye.cs)
+m2 <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.cs)
+m3 <- lm(PC1 ~ 1, data = leye.cs)
+
+model_names <- paste0("m", 1:3)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-# important parameters: surrounding ag (quadratic), time, permanence,
-#                       dist to closest wetland, shorebird abundance
+
+confint(m1)
+
+# exclude data prior to 08:00 and assess relationships -------------------------
+
+# format subset data
+leye$formatted_time <- format(as.POSIXct(leye$seconds_since_midnight, 
+                                         origin = "1970-01-01", tz = "UTC"), 
+                              "%H:%M")
 
 
-confint(m5)
+leye_late <- subset(leye, formatted_time > "08:00")
+leye_late.cs <- leye_late %>%
+  mutate(across(where(is.numeric), scale))
+
+m <- lm(PC1 ~ PercentAg,
+        data = leye_late.cs)
+
+m <- lm(PC1 ~ PercentAg + seconds_since_midnight + 
+          sin(2 * pi * seconds_since_midnight / (24 * 3600)) +  
+          cos(2 * pi * seconds_since_midnight / (24 * 3600)),
+        data = leye_late)
+
+d <- expand.grid(seconds_since_midnight = seq(min(leye_late$seconds_since_midnight), 
+                                 max(leye_late$seconds_since_midnight), 
+                                 length.out = 1000),
+                 PercentAg = mean(leye_late$PercentAg))
+
+predictions <- predict(m, newdata = d)
+
+d$yhat <- predictions
+
+d$yhat <- predict(m, newdata = d)
+
+d$se <- predict(m, newdata = d, se.fit = TRUE)$se.fit
+d$lower <- d$yhat - 2*d$se
+d$upper <- d$yhat + 2*d$se
+
+# time
+ggplot(d, aes(x = seconds_since_midnight, y = yhat)) +
+  geom_line(size = 1) +  
+  theme_classic() +
+  geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
+  labs(x = "Capture Time", 
+       y = "Lesser Yellowlegs Fattening Index",
+       col = "% Surrounding Agriculture") +
+  theme(axis.title.x = element_text(size = 21,
+                                    margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21,
+                                    margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.position = "top") +
+  geom_hline(yintercept = 0, linetype = "twodash", color = "red",
+             size = 1) +
+  geom_point(data = leye_late, aes(x = seconds_since_midnight, y = PC1, 
+                              col = PercentAg), size = 3) +
+  scale_x_time(labels = scales::time_format("%H:%M"),
+               breaks = seq(0, 86400, by = 7200)) +
+  scale_color_viridis(alpha = 1, begin = 1, end = 0) +
+  geom_text(data = leye_late, aes(x = seconds_since_midnight, y = PC1, 
+                             label = sprintf("%.0f", PercentAg)), 
+            size = 3, vjust = -0.5) 
+
+confint(m)
 
 
-# Modeling time & Percent Ag (exponential)--------------------------------------
 
-## CAN'T FIND GOOD STARTING VALUES!!
-lm_model <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.cs)
 
-m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a), 
-          data = leye.cs,
-          start = list(beta0 = 2, beta1 = 2, a = 40),
-          control = nls.control(maxiter = 500))
 
-m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a) + 
-            beta2 * seconds_since_midnight + 
-            beta3 * sin +
-            beta4 * cos, 
-          data = leye.cs,
-          start = list(beta0 = 2, beta1 = 2, a = 40, 
-                       beta2 = 0, 
-                       beta3 = 0,
-                       beta4 = 0),
-          control = nls.control(maxiter = 1000))
 
-m1 <- nls(PC1 ~ beta0 + beta1 * -exp(PercentAg/a) +
-            beta2 * seconds_since_midnight +
-  beta3 * sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
-  beta4 * cos(2 * pi * seconds_since_midnight / (24 * 3600)),
-  data = leye,
-  start = list(beta0 = 2, beta1 = 2, a = 40, beta2 = 0, beta3 = 0,
-              beta4 = 0),
-  control = nls.control(maxiter = 100))
 
-summary(m1)
+
+
+
+
+
+
+
+
+
+

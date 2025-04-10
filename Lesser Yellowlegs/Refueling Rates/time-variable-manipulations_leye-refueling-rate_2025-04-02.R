@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Refueling Rates Habitat Analysis #
 #             Non-linear regression                  #
 #               Created 2025-04-01                   #
-#              Modified 2025-04-02                   #
+#              Modified 2025-04-04                   #
 #----------------------------------------------------#
 
 # load packages
@@ -939,9 +939,9 @@ m <- lm(PC1 ~ seconds_since_midnight +
         data = leye)
 
 # just sin
-m <- lm(PC1 ~ seconds_since_midnight + 
-          sin(2 * pi * seconds_since_midnight / (24 * 3600)),
-        data = leye)
+# m <- lm(PC1 ~ seconds_since_midnight + 
+#           sin(2 * pi * seconds_since_midnight / (24 * 3600)),
+#         data = leye)
 
 summary(m)
 
@@ -965,7 +965,8 @@ ggplot(d, aes(x = seconds_since_midnight, y = yhat)) +
   theme_classic() +
   geom_ribbon(aes(ymin = lower, ymax = upper), alpha = 0.2) +
   labs(x = "Time of Capture", 
-       y = "Lesser Yellowlegs Fattening Index") +
+       y = "Lesser Yellowlegs Fattening Index",
+       col = "% Surrounding Agriculture") +
   theme(axis.title.x = element_text(size = 21,
                                     margin = margin(t = 12)),
         axis.title.y = element_text(size = 21,
@@ -977,9 +978,14 @@ ggplot(d, aes(x = seconds_since_midnight, y = yhat)) +
         legend.position = "top") +
   geom_hline(yintercept = 0, linetype = "twodash", color = "red",
              size = 1) +
-  geom_point(data = leye, aes(x = seconds_since_midnight, y = PC1), size = 3) +
+  geom_point(data = leye, aes(x = seconds_since_midnight, y = PC1, 
+                              col = PercentAg), size = 3) +
   scale_x_time(labels = scales::time_format("%H:%M"),
-               breaks = seq(0, 86400, by = 7200))
+               breaks = seq(0, 86400, by = 7200)) +
+  scale_color_viridis(alpha = 1, begin = 1, end = 0) +
+  geom_text(data = leye, aes(x = seconds_since_midnight, y = PC1, 
+                             label = sprintf("%.0f", PercentAg)), 
+            size = 3, vjust = -0.5) 
 
 plot(predict(m), rstudent(m))
 
