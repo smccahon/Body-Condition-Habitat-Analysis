@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Pectoral Muscle Habitat Analysis #
 #                linear regression                   #
 #               Created 2025-04-07                   #
-#              Modified 2025-04-10                   #
+#              Modified 2025-04-11                   #
 #----------------------------------------------------#
 
 # load packages
@@ -179,6 +179,19 @@ model_names <- paste0("m", 1:2)
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
+
+# time and event interaction? yes
+# not necessary to be informed null though...all within 2 delta AICc
+m1 <- lm(PecSizeBest ~ seconds_since_midnight * Event, data = leye.cs)
+m2 <- lm(PecSizeBest ~ seconds_since_midnight + Event, data = leye.cs)
+m3 <- lm(PecSizeBest ~ 1, data = leye.cs)
+
+model_names <- paste0("m", 1:3)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 
 # detection or event? detection is misleading...
 plot(leye$Detection, leye$PecSizeBest)
@@ -577,3 +590,16 @@ confint(m)
 # CONCLUSION AND NOTES WITH NEONICS --------------------------------------------
 # mention all birds in spring had detections but pectoral muscle sizes were 
 # higher in spring
+
+# add macroinvertebrate diversity and biomass data for 2023 --------------------
+birds.sub <- subset(leye.cs, !is.na(Biomass))
+
+m <- lm(PecSizeBest ~ Biomass, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lm(PecSizeBest ~ Diversity, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of diversity

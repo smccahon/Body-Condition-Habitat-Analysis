@@ -143,7 +143,7 @@ aictab(models, modnames = model_names)
 
 # temporal
 m1 <- lm(Mass ~ Julian * Event, data = leye)
-m2 <- lm(Mass ~ Julian, data = leye)
+m2 <- lm(Mass ~ Julian + Event, data = leye)
 
 model_names <- paste0("m", 1:2)
 
@@ -152,6 +152,18 @@ models <- mget(model_names)
 aictab(models, modnames = model_names)
 
 # interaction is much better...but model is unstable. drop interaction
+
+# time and event?
+m1 <- lm(Mass ~ seconds_since_midnight * Event, data = leye)
+m2 <- lm(Mass ~ seconds_since_midnight + Event, data = leye)
+
+model_names <- paste0("m", 1:2)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# model with interaction is much for informative
 
 # is date important within season? yes but it's not making sense...too complex
 leye.fall <- subset(leye, Event == "Fall 2023")
@@ -162,49 +174,61 @@ ggplot(leye.spring, aes(x = Julian, y = Mass)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
-# Model Selection (Stage 1) ----------------------------------------------------
+# Model Selection (Stage 1) Event * Time as Informed Null-----------------------
 
 # agriculture
-m1 <- lm(Mass ~ PercentAg, data = leye.cs)
+m1 <- lm(Mass ~ PercentAg + Event * seconds_since_midnight, data = leye.cs)
 
 # vegetation
-m2 <- lm(Mass ~ Percent_Total_Veg, data = leye.cs)
+m2 <- lm(Mass ~ Percent_Total_Veg + Event * seconds_since_midnight, data = leye.cs)
 
 # habitat
-m3 <- lm(Mass ~ Permanence, data = leye.cs)
-m4 <- lm(Mass ~ Percent_Exposed_Shoreline, data = leye.cs)
-m5 <- lm(Mass ~ Dist_Closest_Wetland_m, data = leye.cs)
+m3 <- lm(Mass ~ Permanence + Event * seconds_since_midnight, data = leye.cs)
+m4 <- lm(Mass ~ Percent_Exposed_Shoreline + Event * seconds_since_midnight, 
+         data = leye.cs)
+m5 <- lm(Mass ~ Dist_Closest_Wetland_m + Event * seconds_since_midnight, 
+         data = leye.cs)
 
 # weather
-m6 <- lm(Mass ~ SPEI, data = leye.cs)
+m6 <- lm(Mass ~ SPEI + Event * seconds_since_midnight, data = leye.cs)
 
 # life history
-m7 <- lm(Mass ~ Age, data = leye.cs)
-m8 <- lm(Mass ~ Sex, data = leye.cs)
+m7 <- lm(Mass ~ Age + Event * seconds_since_midnight, data = leye.cs)
+m8 <- lm(Mass ~ Sex + Event * seconds_since_midnight, data = leye.cs)
 
 # temporal
-m9 <- lm(Mass ~ Julian, data = leye.cs)
-m10 <- lm(Mass ~ seconds_since_midnight, data = leye.cs)
-m11 <- lm(Mass ~ Event, data = leye.cs)
+m9 <- lm(Mass ~ Julian + Event * seconds_since_midnight, data = leye.cs)
+m10 <- lm(Mass ~ seconds_since_midnight*Event, data = leye.cs)
 
 # flock
-m12 <- lm(Mass ~ Max_Flock_Size, data = leye.cs)
+m11 <- lm(Mass ~ Max_Flock_Size + Event * seconds_since_midnight, data = leye.cs)
 
-# null
-m13 <- lm(Mass ~ 1, data = leye.cs)
+# informed null
+m12 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.cs)
 
-
-model_names <- paste0("m", 1:13)
+model_names <- paste0("m", 1:12)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
 # results
-summary(m7)
-confint(m)
+summary(m7) # age in the top model but not significant
+confint(m7)
 
-# informative parameters -------------------------------------------------------
+summary(m1) # percent ag not significant
+confint(m1)
+
+# CONCLUSION -------------------------------------------------------------------
+# Event * Time most informative, age is in top model (but not significant)
+
+# Variables to move forward to chapter 2: age + event * time -------------------
+
+#------------------------------------------------------------------------------#
+
+# PREVIOUS ANALYSIS NOT TAKING EVENT*TIME INTO CONSIDERATION -------------------
+
+# informative parameters 
 # Event:Fall 2023 (m11): (B = -1.16, CI: -1.75, -0.57)
 # Age (m7): (B = 0.88, CI: 0.32, 1.43)
 # Max Flock Size (m12): (B = -0.332, CI: -0.59, -0.07)
@@ -214,7 +238,7 @@ ggplot(leye, aes(x = Max_Flock_Size, y = Mass)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE)
 
-# Model Selection (Stage 2) ----------------------------------------------------
+# Model Selection (Stage 2) 
 m1 <- lm(Mass ~ Age, data = leye.cs)
 m2 <- lm(Mass ~ Event, data = leye.cs)
 m3 <- lm(Mass ~ Max_Flock_Size, data = leye.cs)
@@ -238,9 +262,8 @@ confint(m4) # event informative
 confint(m6) # event informative
 confint(m1) # age informative
 
-# Variables to move forward to chapter 2 ---------------------------------------
+# Variables to move forward to chapter 2
 # age, flock size, event
-
 
 ggplot(leye, aes(x = Event, y = Mass)) + geom_boxplot() +
   theme_classic() +

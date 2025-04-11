@@ -139,7 +139,18 @@ cor
 
 
 
+# add macroinvertebrate diversity and biomass data for 2023 --------------------
+birds.sub <- subset(leye.cs, !is.na(Biomass))
 
+m <- lm(Uric ~ Biomass, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lm(Uric ~ Diversity, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of diversity
 
 
 

@@ -1,8 +1,8 @@
 #----------------------------------------------------#
 # Lesser Yellowlegs Refueling Rates Habitat Analysis #
-#             Non-linear regression                  #
+#               linear regression                    #
 #               Created 2025-04-03                   #
-#              Modified 2025-04-07                   #
+#              Modified 2025-04-11                   #
 #----------------------------------------------------#
 
 # load packages
@@ -465,8 +465,18 @@ ggplot(d, aes(x = seconds_since_midnight, y = yhat)) +
 confint(m)
 
 
+# add macroinvertebrate diversity and biomass data for 2023 --------------------
+birds.sub <- subset(leye.cs, !is.na(Biomass))
 
+m <- lm(PC1 ~ Biomass, data = birds.sub)
 
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lm(PC1 ~ Diversity, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of diversity
 
 
 

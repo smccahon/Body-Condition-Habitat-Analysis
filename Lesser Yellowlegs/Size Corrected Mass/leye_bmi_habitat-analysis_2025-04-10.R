@@ -221,6 +221,18 @@ aictab(models, modnames = model_names)
 
 # model without interaction is better
 
+# is time * event necessary?
+m1 <- lm(Uric ~ seconds_since_midnight * Event, data = leye)
+m2 <- lm(Uric ~ seconds_since_midnight + Event, data = leye)
+
+model_names <- paste0("m", 1:2)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# no, this overcomplicates everything
+
 # Model Selection (Stage 1) ----------------------------------------------------
 
 # agriculture
@@ -262,3 +274,18 @@ aictab(models, modnames = model_names)
 # results --> permanence top model but not significant (next is null)
 summary(m6)
 confint(m6)
+
+
+
+# add macroinvertebrate diversity and biomass data for 2023 --------------------
+birds.sub <- subset(leye.cs, !is.na(Biomass))
+
+m <- lm(sc.mass ~ Biomass, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lm(sc.mass ~ Diversity, data = birds.sub)
+
+summary(m)
+confint(m) # no effect of diversity
