@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Mass Habitat Analysis #
 #          Linear regression              #
 #          Created 2025-04-10             #
-#         Modified 2025-04-10             #
+#         Modified 2025-04-30             #
 #-----------------------------------------#
 
 # load packages
@@ -79,9 +79,10 @@ leye$formatted_time <- format(as.POSIXct(leye$seconds_since_midnight,
                                          origin = "1970-01-01", tz = "UTC"), 
                               "%H:%M")
 
-#standardize data
+# standardize data except for response
 leye.cs <- leye %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("Mass"), scale))
+
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -163,7 +164,7 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-# model with interaction is much for informative
+# model with interaction is much more informative
 
 # is date important within season? yes but it's not making sense...too complex
 leye.fall <- subset(leye, Event == "Fall 2023")
@@ -203,21 +204,138 @@ m10 <- lm(Mass ~ seconds_since_midnight*Event, data = leye.cs)
 # flock
 m11 <- lm(Mass ~ Max_Flock_Size + Event * seconds_since_midnight, data = leye.cs)
 
-# informed null
-m12 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.cs)
 
-model_names <- paste0("m", 1:12)
+model_names <- paste0("m", 1:11)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-# results
+# results no parameters informative other than Event * Time (informed null)----
 summary(m7) # age in the top model but not significant
 confint(m7)
 
+confint(m6)
+
 summary(m1) # percent ag not significant
 confint(m1)
+
+
+# do these results change with site as a random effect? yes ----
+
+# remove sites with only one observation ----
+leye.m <- leye.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
+#agriculture
+m1 <- lmer(Mass ~ PercentAg + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+
+# vegetation
+m2 <- lmer(Mass ~ Percent_Total_Veg + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+
+# habitat
+m3 <- lmer(Mass ~ Permanence + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+m4 <- lmer(Mass ~ Percent_Exposed_Shoreline + Event * seconds_since_midnight + (1|Site), 
+         data = leye.m, REML = FALSE)
+m5 <- lmer(Mass ~ Dist_Closest_Wetland_m + Event * seconds_since_midnight  + (1|Site), 
+         data = leye.m, REML = FALSE)
+
+# weather
+m6 <- lmer(Mass ~ SPEI + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+
+# life history
+m7 <- lmer(Mass ~ Age + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+m8 <- lmer(Mass ~ Sex + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+
+# temporal
+m9 <- lmer(Mass ~ Julian + Event * seconds_since_midnight + (1|Site), data = leye.m , REML = FALSE)
+m10 <- lmer(Mass ~ seconds_since_midnight*Event + (1|Site), data = leye.m , REML = FALSE)
+
+# flock
+m11 <- lmer(Mass ~ Max_Flock_Size + Event * seconds_since_midnight + (1|Site), 
+            data = leye.m , REML = FALSE)
+
+
+model_names <- paste0("m", 1:11)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+summary(m7) # age is now significant
+confint(m7)
+
+
+# agriculture
+m1 <- lm(Mass ~ PercentAg + Event * seconds_since_midnight, data = leye.m)
+
+# vegetation
+m2 <- lm(Mass ~ Percent_Total_Veg + Event * seconds_since_midnight, data = leye.m)
+
+# habitat
+m3 <- lm(Mass ~ Permanence + Event * seconds_since_midnight, data = leye.m)
+m4 <- lm(Mass ~ Percent_Exposed_Shoreline + Event * seconds_since_midnight, 
+         data = leye.m)
+m5 <- lm(Mass ~ Dist_Closest_Wetland_m + Event * seconds_since_midnight, 
+         data = leye.m)
+
+# weather
+m6 <- lm(Mass ~ SPEI + Event * seconds_since_midnight, data = leye.m)
+
+# life history
+m7 <- lm(Mass ~ Age + Event * seconds_since_midnight, data = leye.m)
+m8 <- lm(Mass ~ Sex + Event * seconds_since_midnight, data = leye.m)
+
+# temporal
+m9 <- lm(Mass ~ Julian + Event * seconds_since_midnight, data = leye.m)
+m10 <- lm(Mass ~ seconds_since_midnight*Event, data = leye.m)
+
+# flock
+m11 <- lm(Mass ~ Max_Flock_Size + Event * seconds_since_midnight, data = leye.m)
+
+
+model_names <- paste0("m", 1:11)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+confint(m7) # age is not significant
+
+
+# Is there enough support to include the random effect (stage 2)? No ----
+m1 <- lm(Mass ~ Event * seconds_since_midnight + Age, data = leye.m)
+m2 <- lmer(Mass ~ Event * seconds_since_midnight + Age + (1|Site), data = leye.m, REML = FALSE)
+
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
 
 # CONCLUSION -------------------------------------------------------------------
 # Event * Time most informative, age is in top model (but not significant)

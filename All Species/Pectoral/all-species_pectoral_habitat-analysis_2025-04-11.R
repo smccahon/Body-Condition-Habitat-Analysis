@@ -82,9 +82,20 @@ birds <- birds %>%
   filter(n() >= 3) %>% 
   ungroup()
 
-# standardize data
+# standardize data except for response
 birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("PecSizeBest"), scale))
+
+# Only include sites with at least three individuals
+birds.s <- birds %>% 
+  group_by(Site) %>% 
+  filter(n() >= 3) %>% 
+  ungroup()
+
+# standardize data except for response
+birds.s.cs <- birds.s %>%
+  mutate(across(where(is.numeric) & !matches("PecSizeBest"), scale))
+
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -235,13 +246,102 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-
-confint(m1)
+# event * time, julian * migratory status, max flock size
+# can't have Julian*MigStatus as informed null due to correlations
 
 # informative parameters to move onto stage 2 ----------------------------------
-# event * time, julian * migratory status, max flock size
+# event * time, julian * migratory status
 
 plot(birds$Max_Flock_Size, birds$PecSizeBest)
+
+# Model Selection with Site as Random Effect -----------------------------------
+
+# agriculture
+m1 <- lmer(PecSizeBest ~ PercentAg + (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# vegetation
+m2 <- lmer(PecSizeBest ~ Percent_Total_Veg + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# habitat
+m3 <- lmer(PecSizeBest ~ Permanence + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+m4 <- lmer(PecSizeBest ~ Percent_Exposed_Shoreline + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+m5 <- lmer(PecSizeBest ~ Dist_Closest_Wetland_m + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# weather
+m6 <- lmer(PecSizeBest ~ SPEI + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# life history
+m7 <- lmer(PecSizeBest ~ Sex + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+m8 <- lmer(PecSizeBest ~ MigStatus + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+m9 <- lmer(PecSizeBest ~ MigStatus * Julian + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# temporal
+m10 <- lmer(PecSizeBest ~ Julian + (1|Species) + (1|Site), 
+            data = birds.s.cs, REML = FALSE)
+m11 <- lmer(PecSizeBest ~ Event * seconds_since_midnight + (1|Species) + (1|Site), data = birds.s.cs,
+            REML = FALSE)
+m12 <- lmer(PecSizeBest ~ Event + (1|Species) + (1|Site), data = birds.s.cs,
+            REML = FALSE)
+m13 <- lmer(PecSizeBest ~ seconds_since_midnight + (1|Species) + (1|Site), data = birds.s.cs,
+            REML = FALSE)
+
+# flock
+m14 <- lmer(PecSizeBest ~ Max_Flock_Size + (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# null
+m15 <- lmer(PecSizeBest ~ (1 | Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:15)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(PecSizeBest ~ MigStatus * Julian + (1|Species), 
+           data = birds.s.cs, REML = FALSE)
+
+m2 <- lmer(PecSizeBest ~ MigStatus * Julian + (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
+
 
 
 # add macroinvertebrate diversity and biomass data for 2023 --------------------

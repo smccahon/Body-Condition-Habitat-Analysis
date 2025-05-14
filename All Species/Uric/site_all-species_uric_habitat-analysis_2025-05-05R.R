@@ -1,7 +1,7 @@
 #----------------------------------------------#
 #    All Species Uric Acid Habitat Analysis    #
-#            Created 2025-04-11                #
-#           Modified 2025-04-11                #
+#            Created 2025-05-05                #
+#           Modified 2025-05-05                #
 #----------------------------------------------#
 
 # load packages
@@ -83,7 +83,7 @@ birds <- birds %>%
 
 # standardize data
 birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("Uric"), scale))
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -229,6 +229,102 @@ confint(m1) # marginally significant? but in the opposite direction you would ex
 
 plot(birds$Percent_Exposed_Shoreline, birds$Uric)
 
+# is random effect of site needed? ----
+# exclude sites with only 1 bird
+birds.m <- birds.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
+
+m1 <- lmer(Uric ~ PercentAg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Uric ~ Percent_Total_Veg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(Uric ~ Permanence  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+m4 <- lmer(Uric ~ Percent_Exposed_Shoreline  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(Uric ~ Dist_Closest_Wetland_m  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Uric ~ SPEI  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(Uric ~ Sex  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(Uric ~ MigStatus  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(Uric ~ Julian  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(Uric ~ Event  + (1|Species) + (1|Site), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(Uric ~ seconds_since_midnight + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(Uric ~ Max_Flock_Size  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(Uric ~ 1 + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# interactions
+m14 <- lmer(Uric ~ Julian * MigStatus + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:14)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results do not change
+
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(Uric ~ seconds_since_midnight + (1 | Species), 
+          data = birds.m, REML = FALSE)
+m2 <- lmer(Uric ~ seconds_since_midnight + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+m1 <- lmer(Uric ~ PercentAg  + (1|Species),  data = birds.m, 
+           REML = FALSE)
+m2 <- lmer(Uric ~ PercentAg  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
+
 
 
 # Model Selection (Stage 2) ----------------------------------------------------
@@ -257,24 +353,35 @@ m11 <- lmer(Uric ~ seconds_since_midnight + Julian + (1|Species),
 m12 <- lmer(Uric ~ seconds_since_midnight + MigStatus + (1|Species), 
             data = birds.cs, REML = FALSE)
 
-model_names <- paste0("m", 1:12)
+m13 <- lmer(Uric ~ Percent_Exposed_Shoreline + seconds_since_midnight + 
+             Julian * MigStatus + (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+m14 <- lmer(Uric ~ Percent_Exposed_Shoreline + Julian + seconds_since_midnight +
+             (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+m15 <- lmer(Uric ~ Percent_Exposed_Shoreline + MigStatus + 
+             seconds_since_midnight + (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:15)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-confint(m7)
-confint(m10)
-
 # plot exposed shoreline -------------------------------------------------------
-m <- lmer(Uric ~ Percent_Exposed_Shoreline + Julian * MigStatus + (1 | Species), 
-          data = birds)
+m <- lmer(Uric ~ Percent_Exposed_Shoreline + seconds_since_midnight + 
+            Julian * MigStatus + (1 | Species), 
+          data = birds, REML = FALSE)
 
 d <- expand.grid(Percent_Exposed_Shoreline = seq(min(birds$Percent_Exposed_Shoreline), 
                                                  max(birds$Percent_Exposed_Shoreline), 
                                                  length = 1000),
                  Julian = mean(birds$Julian),
                  MigStatus = unique(birds$MigStatus),
+                 seconds_since_midnight = mean(birds$seconds_since_midnight),
                  Species = unique(birds$Species)) 
 
 predictions <- predict(m, newdata = d, se.fit = TRUE, re.form = NA)
@@ -310,7 +417,7 @@ ggplot(d, aes(x = Percent_Exposed_Shoreline, y = fit)) +
 
 
 summary(m)
-
+confint(m)
 
 # add macroinvertebrate diversity and biomass data for 2023 --------------------
 birds.sub <- subset(birds.cs, !is.na(Biomass))

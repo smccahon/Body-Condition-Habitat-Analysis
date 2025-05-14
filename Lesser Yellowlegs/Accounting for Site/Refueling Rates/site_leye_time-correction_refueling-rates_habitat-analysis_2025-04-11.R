@@ -124,9 +124,9 @@ leye$PC2 <- NA  # Initialize with NA values
 leye[complete.cases(leye_subset), "PC1"] <- pca_scores[, 1]
 leye[complete.cases(leye_subset), "PC2"] <- pca_scores[, 2]
 
-# standardize data
+# ...standardize data except for response ----
 leye.cs <- leye %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("PC1"), scale))
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -468,70 +468,18 @@ confint(m)
 
 
 # add macroinvertebrate diversity and biomass data for 2023 --------------------
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds.sub <- subset(leye.cs, !is.na(Biomass))
 
-leye <- subset(birds, Species %in% c("Lesser Yellowlegs"))
-
-leye.tri <- leye %>% 
-  filter(!is.na(Tri)) %>%
-  mutate(across(where(is.numeric) & !matches("Tri"), scale)) %>% 
-  filter(!is.na(Biomass))
-
-leye.beta <- leye %>% 
-  filter(!is.na(Beta)) %>%
-  mutate(across(where(is.numeric) & !matches("Beta"), scale)) %>% 
-  filter(!is.na(Biomass))
-
-leye.PC1 <- leye %>% 
-  filter(!is.na(Tri) & !is.na(Beta)) %>%
-  mutate(across(where(is.numeric) & !matches("Tri"), scale)) %>% 
-  filter(!is.na(Biomass))
-
-leye.uric <- leye %>% 
-  filter(!is.na(Uric)) %>%
-  mutate(across(where(is.numeric) & !matches("Uric"), scale)) %>% 
-  filter(!is.na(Biomass))
-
-m <- lm(PC1 ~ Biomass, data = leye.PC1)
+m <- lm(PC1 ~ Biomass, data = birds.sub)
 
 summary(m)
 confint(m) # no effect of biomass
 
-m <- lm(PC1 ~ Diversity, data = leye.PC1)
+m <- lm(PC1 ~ Diversity, data = birds.sub)
 
 summary(m)
 confint(m) # no effect of diversity
 
-
-m <- lm(Tri ~ Biomass, data = leye.tri)
-
-summary(m)
-confint(m) # no effect of biomass
-
-m <- lm(Tri ~ Diversity, data = leye.tri)
-
-summary(m)
-confint(m)
-
-m <- lm(Beta ~ Biomass, data = leye.beta)
-
-summary(m)
-confint(m) # no effect of biomass
-
-m <- lm(Beta ~ Diversity, data = leye.beta)
-
-summary(m)
-confint(m)
-
-m <- lm(Uric ~ Biomass, data = leye.uric)
-
-summary(m)
-confint(m) # no effect of biomass
-
-m <- lm(Uric ~ Diversity, data = leye.uric)
-
-summary(m)
-confint(m)
 
 
 
@@ -556,7 +504,136 @@ summary(lm(residuals ~ PercentAg, data = leye.cs)) # Adj. R2 = -0.0241
 
 
 
+# are random effects necessary? ----
+leye.m <- leye.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
+m1 <- lmer(PC1 ~ PercentAg + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# vegetation
+m2 <- lmer(PC1 ~ Percent_Total_Veg + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# habitat
+m3 <- lmer(PC1 ~ Permanence + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+m4 <- lmer(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+m5 <- lmer(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# weather
+m6 <- lmer(PC1 ~ SPEI + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# life history
+m7 <- lmer(PC1 ~ Age + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+m8 <- lmer(PC1 ~ Sex + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# temporal
+m9 <- lmer(PC1 ~ Julian + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+m10 <- lmer(PC1 ~ Event + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+m11 <- lmer(PC1 ~ seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
+
+# flock
+m12 <- lmer(PC1 ~ Max_Flock_Size + seconds_since_midnight + sin + cos +(1|Site), REML = FALSE, data = leye.m)
 
 
+model_names <- paste0("m", 1:12)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results did not change
+
+# run reduced dataset without site ----
+
+m1 <- lm(PC1 ~ PercentAg + seconds_since_midnight + sin + cos, data = leye.m)
+
+# vegetation
+m2 <- lm(PC1 ~ Percent_Total_Veg + seconds_since_midnight +
+           sin +
+           cos, data = leye.m)
+
+# habitat
+m3 <- lm(PC1 ~ Permanence + seconds_since_midnight + 
+           sin +
+           cos, data = leye.m)
+m4 <- lm(PC1 ~ Percent_Exposed_Shoreline + seconds_since_midnight + 
+           sin +             
+           cos, data = leye.m)
+m5 <- lm(PC1 ~ Dist_Closest_Wetland_m + seconds_since_midnight +  
+           sin + 
+           cos, data = leye.m)
+
+# weather
+m6 <- lm(PC1 ~ SPEI + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.m)
+
+# life history
+m7 <- lm(PC1 ~ Age + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.m)
+m8 <- lm(PC1 ~ Sex + seconds_since_midnight + 
+           sin + 
+           cos, data = leye.m)
+
+# temporal
+m9 <- lm(PC1 ~ Julian + seconds_since_midnight +            
+           sin +             
+           cos, data = leye.m)
+m10 <- lm(PC1 ~ Event + seconds_since_midnight +            
+            sin +             
+            cos, data = leye.m)
+m11 <- lm(PC1 ~ seconds_since_midnight +            
+            sin +             
+            cos, data = leye.m)
+
+# flock
+m12 <- lm(PC1 ~ Max_Flock_Size + seconds_since_midnight +           
+            sin +             
+            cos, data = leye.m)
 
 
+model_names <- paste0("m", 1:12)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+
+confint(m1)
+
+
+# Is there enough support to include the random effect? No ----
+m1 <- lm(PC1 ~ seconds_since_midnight + sin + cos, data = leye.m)
+m2 <- lmer(PC1 ~ seconds_since_midnight + sin + cos + (1|Site),
+           data = leye.m, REML = FALSE)
+
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)

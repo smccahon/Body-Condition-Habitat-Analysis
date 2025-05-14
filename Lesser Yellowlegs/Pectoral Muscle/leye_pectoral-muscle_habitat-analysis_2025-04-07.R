@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Pectoral Muscle Habitat Analysis #
 #                linear regression                   #
 #               Created 2025-04-07                   #
-#              Modified 2025-04-11                   #
+#              Modified 2025-04-28                   #
 #----------------------------------------------------#
 
 # load packages
@@ -84,9 +84,9 @@ leye$formatted_time <- format(as.POSIXct(leye$seconds_since_midnight,
 leye <- leye %>% 
   filter(!is.na(PecSizeBest))
 
-#standardize data
+# standardize data except for response
 leye.cs <- leye %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("PecSizeBest"), scale))
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -160,6 +160,18 @@ aictab(models, modnames = model_names)
 # temporal
 m1 <- lm(PecSizeBest ~ Julian * Event, data = leye)
 m2 <- lm(PecSizeBest ~ Julian, data = leye)
+
+model_names <- paste0("m", 1:2)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# model without interaction is the most informative
+
+# age & % ag interaction
+m1 <- lm(PecSizeBest ~ Age * PercentAg, data = leye)
+m2 <- lm(PecSizeBest ~ Age + PercentAg, data = leye)
 
 model_names <- paste0("m", 1:2)
 
@@ -308,7 +320,33 @@ ggplot(d, aes(x = (PercentAg), y = fit, color = Age)) +
   scale_color_manual(values = c("Juvenile" = "#009E73", 
                                 "Adult" = "#CC79A7")) +
   scale_fill_manual(values = c("Juvenile" = "#009E73",  
-                               "Adult" = "#CC79A7"))    
+                               "Adult" = "#CC79A7")) 
+
+# coop meeting presentation
+d <- expand.grid(Age = c("Adult"),
+                 PercentAg = seq(min(leye$PercentAg),
+                                 max(leye$PercentAg),
+                                 length = 1000)) 
+
+d <- cbind(d, predict(m, newdata = d, interval = "confidence"))
+
+ggplot(d, aes(x = (PercentAg), y = fit, color = Age)) +
+  geom_line(size = 0.8) + 
+  geom_ribbon(aes(ymin = lwr, ymax = upr, fill = Age), 
+              alpha = 0.25, color = NA, show.legend = FALSE) +
+  theme_classic() +
+  labs(x = "% Surrounding Agriculture within 500 m", 
+       y = expression("Lesser Yellowlegs Pectoral Muscle Size" ~~~ (mm[score])),
+       color = "Age") +
+  theme(axis.title.x = element_text(size = 21, margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21, margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 18),
+        legend.position = "none") +
+  scale_color_manual(values = c("Adult" = "firebrick2")) +
+  scale_fill_manual(values = c("Adult" = "firebrick2")) 
 
 
 # juveniles only

@@ -2,7 +2,7 @@
 #  Lesser Yellowlegs BMI Habitat Analysis #
 #          Linear regression              #
 #          Created 2025-04-10             #
-#         Modified 2025-04-10             #
+#         Modified 2025-05-05             #
 #-----------------------------------------#
 
 # load packages
@@ -79,17 +79,13 @@ leye$formatted_time <- format(as.POSIXct(leye$seconds_since_midnight,
                                          origin = "1970-01-01", tz = "UTC"), 
                               "%H:%M")
 
-#standardize data
-leye.cs <- leye %>%
-  mutate(across(where(is.numeric), scale))
-
 # ---------------------------------------------------------------------------- #
 
 # Perform PCA: Females ####
 # Peig and Green 2009 & Bajracharya 2022
 
 # Subset the dataset to only include females
-leye_female <- subset(leye.cs, Sex == "Female")
+leye_female <- subset(leye, Sex == "Female")
 
 # Subset the dataset to only include tarsus, wing length, and bill length
 leye_female <- leye_female[, c("Wing", "Culmen", "DiagTarsus")]
@@ -104,20 +100,20 @@ summary(pca_result)
 PC1_female <- pca_result$x[, 1]
 
 # Regress PC1 against body mass
-m_female <- lm(PC1_female ~ Mass, data = subset(leye.cs, Sex == "Female"))
+m_female <- lm(PC1_female ~ Mass, data = subset(leye, Sex == "Female"))
 
 # Save the residuals of the regression to obtain size-corrected mass
 sc.mass.f <- resid(m_female)
 
 # Add size-corrected mass back into the full datasest
-leye.cs$sc.mass <- NA  # Initialize with NA values
-leye.cs[leye.cs$Sex == "Female", "sc.mass"] <- sc.mass.f
+leye$sc.mass <- NA  # Initialize with NA values
+leye[leye$Sex == "Female", "sc.mass"] <- sc.mass.f
 
 
 # Perform PCA: Males ####
 
 # Subset the dataset to only include males
-leye_male <- subset(leye.cs, Sex == "Male")
+leye_male <- subset(leye, Sex == "Male")
 
 # Subset the dataset to only include tarsus, wing length, and bill length
 leye_male <- leye_male[, c("Wing", "Culmen", "DiagTarsus")]
@@ -132,22 +128,25 @@ summary(pca_result)
 PC1_male <- pca_result$x[, 1]
 
 # Regress PC1 against body mass
-m_male <- lm(PC1_male ~ Mass, data = subset(leye.cs, Sex == "Male"))
+m_male <- lm(PC1_male ~ Mass, data = subset(leye, Sex == "Male"))
 
 # Save the residuals of the regression to obtain size-corrected mass
 sc.mass.m <- resid(m_male)
 
 # Add size-corrected mass back into the full datasest
-leye.cs[leye.cs$Sex == "Male", "sc.mass"] <- sc.mass.m
+leye[leye$Sex == "Male", "sc.mass"] <- sc.mass.m
 
 # Add size-corrected mass back into the full datasest
-leye[leye.cs$Sex == "Male", "sc.mass"] <- sc.mass.m
+leye[leye$Sex == "Male", "sc.mass"] <- sc.mass.m
 
 # Add size-corrected mass back into the full datasest
-leye[leye.cs$Sex == "Female", "sc.mass"] <- sc.mass.f
+leye[leye$Sex == "Female", "sc.mass"] <- sc.mass.f
 
 
 
+# ...standardize data except for response ----
+leye.cs <- leye %>%
+  mutate(across(where(is.numeric) & !matches("sc.mass"), scale))
 
 # Test for Correlations--------------------------------------------------------- 
 
@@ -198,8 +197,8 @@ cor(sample)
 # which correlated variables should I drop? ------------------------------------
 
 # agriculture
-m1 <- lm(Uric ~ PercentAg, data = leye)
-m2 <- lm(Uric ~ DominantCrop, data = leye)
+m1 <- lm(sc.mass ~ PercentAg, data = leye.cs)
+m2 <- lm(sc.mass ~ DominantCrop, data = leye.cs)
 
 model_names <- paste0("m", 1:2)
 
@@ -210,11 +209,11 @@ aictab(models, modnames = model_names)
 # % ag is a better predictor
 
 # Does time need a transformation? no
-plot(leye$Uric, leye$seconds_since_midnight)
+plot(leye.cs$sc.mass, leye.cs$seconds_since_midnight)
 
 # temporal
-m1 <- lm(Uric ~ Julian * Event, data = leye)
-m2 <- lm(Uric ~ Julian + Event, data = leye)
+m1 <- lm(sc.mass ~ Julian * Event, data = leye.cs)
+m2 <- lm(sc.mass ~ Julian + Event, data = leye.cs)
 
 model_names <- paste0("m", 1:2)
 
@@ -222,51 +221,48 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
-# model without interaction is better
+# model with interaction is MUCH better
 
-# is time * event necessary?
-m1 <- lm(Uric ~ seconds_since_midnight * Event, data = leye)
-m2 <- lm(Uric ~ seconds_since_midnight + Event, data = leye)
+# is time * event necessary? no
+m1 <- lm(sc.mass ~ seconds_since_midnight * Event, data = leye.cs)
+m2 <- lm(sc.mass ~ seconds_since_midnight + Event, data = leye.cs)
 
 model_names <- paste0("m", 1:2)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names)
-
-# no, this overcomplicates everything
 
 # Model Selection (Stage 1) ----------------------------------------------------
 
 # agriculture
-m1 <- lm(Uric ~ PercentAg, data = leye.cs)
+m1 <- lm(sc.mass ~ PercentAg, data = leye.cs)
 
 # vegetation
-m2 <- lm(Uric ~ Percent_Total_Veg, data = leye.cs)
+m2 <- lm(sc.mass ~ Percent_Total_Veg, data = leye.cs)
 
 # habitat
-m3 <- lm(Uric ~ Permanence, data = leye.cs)
-m4 <- lm(Uric ~ Percent_Exposed_Shoreline, data = leye.cs)
-m5 <- lm(Uric ~ Dist_Closest_Wetland_m, data = leye.cs)
+m3 <- lm(sc.mass ~ Permanence, data = leye.cs)
+m4 <- lm(sc.mass ~ Percent_Exposed_Shoreline, data = leye.cs)
+m5 <- lm(sc.mass ~ Dist_Closest_Wetland_m, data = leye.cs)
 
 # weather
-m6 <- lm(Uric ~ SPEI, data = leye.cs)
+m6 <- lm(sc.mass ~ SPEI, data = leye.cs)
 
 # life history
-m7 <- lm(Uric ~ Age, data = leye.cs)
-m8 <- lm(Uric ~ Sex, data = leye.cs)
+m7 <- lm(sc.mass ~ Age, data = leye.cs)
+m8 <- lm(sc.mass ~ Sex, data = leye.cs)
 
 # temporal
-m9 <- lm(Uric ~ Julian, data = leye.cs)
-m10 <- lm(Uric ~ seconds_since_midnight, data = leye.cs)
-m11 <- lm(Uric ~ Event, data = leye.cs)
+m9 <- lm(sc.mass ~ Julian, data = leye.cs)
+m10 <- lm(sc.mass ~ seconds_since_midnight, data = leye.cs)
+m11 <- lm(sc.mass ~ Event, data = leye.cs)
 
 # flock
-m12 <- lm(Uric ~ Max_Flock_Size, data = leye.cs)
+m12 <- lm(sc.mass ~ Max_Flock_Size, data = leye.cs)
 
 # null
-m13 <- lm(Uric ~ 1, data = leye.cs)
-
+m13 <- lm(sc.mass ~ 1, data = leye.cs)
 
 model_names <- paste0("m", 1:13)
 
@@ -275,20 +271,122 @@ models <- mget(model_names)
 aictab(models, modnames = model_names)
 
 # results --> permanence top model but not significant (next is null)
-summary(m6)
-confint(m6)
+summary(m3)
+confint(m3)
 
+# Random effect necessary? ----
 
+# exclude sites with only 1 bird
+leye.m <- leye.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
 
-# add macroinvertebrate diversity and biomass data for 2023 --------------------
-birds.sub <- subset(leye.cs, !is.na(Biomass))
+# run reduced dataset with site as a random effect ----
+# agriculture
+m1 <- lmer(sc.mass ~ PercentAg + (1|Site), REML = FALSE, data = leye.m)
 
-m <- lm(sc.mass ~ Biomass, data = birds.sub)
+# vegetation
+m2 <- lmer(sc.mass ~ Percent_Total_Veg + (1|Site), REML = FALSE, data = leye.m)
 
-summary(m)
-confint(m) # no effect of biomass
+# habitat
+m3 <- lmer(sc.mass ~ Permanence + (1|Site), REML = FALSE, data = leye.m)
+m4 <- lmer(sc.mass ~ Percent_Exposed_Shoreline + (1|Site), REML = FALSE, data = leye.m)
+m5 <- lmer(sc.mass ~ Dist_Closest_Wetland_m + (1|Site), REML = FALSE, data = leye.m)
 
-m <- lm(sc.mass ~ Diversity, data = birds.sub)
+# weather
+m6 <- lmer(sc.mass ~ SPEI + (1|Site), REML = FALSE, data = leye.m)
 
-summary(m)
-confint(m) # no effect of diversity
+# life history
+m7 <- lmer(sc.mass ~ Age + (1|Site), REML = FALSE, data = leye.m)
+m8 <- lmer(sc.mass ~ Sex + (1|Site), REML = FALSE, data = leye.m)
+
+# temporal
+m9 <- lmer(sc.mass ~ Julian + (1|Site), REML = FALSE, data = leye.m)
+m10 <- lmer(sc.mass ~ seconds_since_midnight + (1|Site), REML = FALSE, data = leye.m)
+m11 <- lmer(sc.mass ~ Event + (1|Site), REML = FALSE, data = leye.m)
+
+# flock
+m12 <- lmer(sc.mass ~ Max_Flock_Size +(1|Site), REML = FALSE, data = leye.m)
+
+# null
+m13 <- lmer(sc.mass ~ 1 + (1|Site), data = leye.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# informative parameters --- none and model is overfitting
+confint(m3)
+
+# rerun analysis without random effect and with reduced dataset ----
+# agriculture
+m1 <- lm(sc.mass ~ PercentAg, data = leye.m)
+
+# vegetation
+m2 <- lm(sc.mass ~ Percent_Total_Veg, data = leye.m)
+
+# habitat
+m3 <- lm(sc.mass ~ Permanence, data = leye.m)
+m4 <- lm(sc.mass ~ Percent_Exposed_Shoreline, data = leye.m)
+m5 <- lm(sc.mass ~ Dist_Closest_Wetland_m, data = leye.m)
+
+# weather
+m6 <- lm(sc.mass ~ SPEI, data = leye.m)
+
+# life history
+m7 <- lm(sc.mass ~ Age, data = leye.m)
+m8 <- lm(sc.mass ~ Sex, data = leye.m)
+
+# temporal
+m9 <- lm(sc.mass ~ Julian, data = leye.m)
+m10 <- lm(sc.mass ~ seconds_since_midnight, data = leye.m)
+m11 <- lm(sc.mass ~ Event, data = leye.m)
+
+# flock
+m12 <- lm(sc.mass ~ Max_Flock_Size, data = leye.m)
+
+# null
+m13 <- lm(sc.mass ~ 1, data = leye.m)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m1 <- lm(sc.mass ~ Permanence, data = leye.m)
+m2 <- lmer(sc.mass ~ Permanence + (1|Site), data = leye.m, REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)

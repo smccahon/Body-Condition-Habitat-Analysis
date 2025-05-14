@@ -1,7 +1,7 @@
 #-------------------------------------------------------#
 # All Species Size-Corrected Body Mass Habitat Analysis #
 #                Created 2025-04-11                     #
-#               Modified 2025-04-11                     #
+#               Modified 2025-05-13                     #
 #-------------------------------------------------------#
 
 # load packages
@@ -95,10 +95,6 @@ birds <- birds %>%
   group_by(Species) %>% 
   filter(n() >= 3) %>% 
   ungroup()
-
-# standardize data
-birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
 
 # ---------------------------------------------------------------------------- #
 
@@ -487,6 +483,10 @@ birds.cs <- rbind(leye.cs, pesa.cs, lbdo.cs, amav.cs, kill.cs, lesa.cs,
 birds <- rbind(leye, pesa, lbdo, amav, kill, lesa, 
                will, sesa, wiph)
 
+# standardize data except for response
+birds.cs <- birds %>%
+  mutate(across(where(is.numeric) & !matches("sc.mass"), scale))
+
 # ---------------------------------------------------------------------------- #
 
 # Test for Correlations--------------------------------------------------------- 
@@ -625,9 +625,89 @@ confint(m9) # date not significant
 
 # nothing significant
 
+# is random effect of site helpful? no ----
+# Only include sites with at least three individuals
+birds.s <- birds %>% 
+  group_by(Site) %>% 
+  filter(n() >= 3) %>% 
+  ungroup()
+
+# standardize data except for response
+birds.s.cs <- birds.s %>%
+  mutate(across(where(is.numeric) & !matches("sc.mass"), scale))
+
+# agriculture
+m1 <- lmer(sc.mass ~ PercentAg + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# vegetation
+m2 <- lmer(sc.mass ~ Percent_Total_Veg + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# habitat
+m3 <- lmer(sc.mass ~ Permanence + (1|Site), REML = FALSE, data = birds.s.cs)
+m4 <- lmer(sc.mass ~ Percent_Exposed_Shoreline + (1|Site), REML = FALSE, 
+         data = birds.s.cs)
+m5 <- lmer(sc.mass ~ Dist_Closest_Wetland_m + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# weather
+m6 <- lmer(sc.mass ~ SPEI + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# life history
+m7 <- lmer(sc.mass ~ MigStatus + (1|Site), REML = FALSE, data = birds.s.cs)
+m8 <- lmer(sc.mass ~ Sex + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# temporal
+m9 <- lmer(sc.mass ~ Julian + (1|Site), REML = FALSE, data = birds.s.cs)
+m10 <- lmer(sc.mass ~ seconds_since_midnight + (1|Site), REML = FALSE, data = birds.s.cs)
+m11 <- lmer(sc.mass ~ Event + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# flock
+m12 <- lmer(sc.mass ~ Max_Flock_Size + (1|Site), REML = FALSE, data = birds.s.cs)
+
+# null
+m13 <- lmer(sc.mass ~ 1 + (1|Site), REML = FALSE, data = birds.s.cs)
 
 
+model_names <- paste0("m", 1:13)
 
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m2 <- lmer(sc.mass ~ Sex + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+m1 <- lm(sc.mass ~ Sex, data = birds.s.cs)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
 
 
 

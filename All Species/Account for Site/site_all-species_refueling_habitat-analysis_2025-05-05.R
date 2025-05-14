@@ -1,7 +1,7 @@
 #----------------------------------------------#
 # All Species Refueling Rates Habitat Analysis #
-#            Created 2025-04-11                #
-#           Modified 2025-04-11                #
+#            Created 2025-05-05                #
+#           Modified 2025-05-05                #
 #----------------------------------------------#
 
 # load packages
@@ -82,16 +82,13 @@ birds <- birds %>%
   filter(n() >= 3) %>% 
   ungroup()
 
-# standardize data
-birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
 
 # ---------------------------------------------------------------------------- #
 
 # Perform PCA ####
 
 # Subset the dataset to only include 'Tri' and 'Beta'
-birds_subset <- birds.cs[, c("Tri", "Beta")]
+birds_subset <- birds[, c("Tri", "Beta")]
 
 # Remove rows with NAs for PCA
 birds_subset_clean <- birds_subset[complete.cases(birds_subset), ]
@@ -107,15 +104,15 @@ pca_scores <- pca_result$x
 
 # Merge PCA scores back to the original dataset
 # Create a data frame to store the PCA scores for the rows with no missing data
-birds.cs$PC1 <- NA  # Initialize with NA values
-birds.cs$PC2 <- NA  # Initialize with NA values
+birds$PC1 <- NA  # Initialize with NA values
+birds$PC2 <- NA  # Initialize with NA values
 
 # Add the principal component scores for the rows without NA values
-birds.cs[complete.cases(birds_subset), "PC1"] <- pca_scores[, 1]
-birds.cs[complete.cases(birds_subset), "PC2"] <- pca_scores[, 2]
+birds[complete.cases(birds_subset), "PC1"] <- pca_scores[, 1]
+birds[complete.cases(birds_subset), "PC2"] <- pca_scores[, 2]
 
 # View the updated dataset with PCA scores
-print(birds.cs)
+print(birds)
 
 # Merge PCA scores back to the original birds unstandardized dataset
 # Create a data frame to store the PCA scores for the rows with no missing data
@@ -131,6 +128,11 @@ birds[complete.cases(birds_subset), "PC2"] <- pca_scores[, 2]
 
 # View the first few rows of the updated data frame
 # head(birds)
+
+# standardize data
+birds.cs <- birds %>%
+  mutate(across(where(is.numeric) & !matches("PC1"), scale))
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -666,16 +668,138 @@ ggplot(birds.cs, aes(x = PercentAg, y = residuals)) +
 
 summary(lm(residuals ~ PercentAg, data = birds.cs)) # Adj. R2 = -0.0102
 
+# agriculture
+m1 <- lmer(PC1 ~ PercentAg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(PC1 ~ Percent_Total_Veg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(PC1 ~ Permanence  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+m4 <- lmer(PC1 ~ Percent_Exposed_Shoreline  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(PC1 ~ Dist_Closest_Wetland_m  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(PC1 ~ SPEI  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(PC1 ~ Sex  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(PC1 ~ MigStatus  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(PC1 ~ Julian  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(PC1 ~ Event  + (1|Species) + (1|Site), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(PC1 ~ seconds_since_midnight + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(PC1 ~ Max_Flock_Size  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(PC1 ~ 1 + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results do not change
+
+
+# run reduced dataset with site as a random effect ----
+# agriculture
+m1 <- lmer(PC1 ~ PercentAg + (1|Species), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(PC1 ~ Percent_Total_Veg + (1|Species), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(PC1 ~ Permanence + (1|Species), data = birds.m, REML = FALSE)
+m4 <- lmer(PC1 ~ Percent_Exposed_Shoreline + (1|Species), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(PC1 ~ Dist_Closest_Wetland_m + (1|Species),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(PC1 ~ SPEI + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(PC1 ~ Sex + (1|Species), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(PC1 ~ MigStatus + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(PC1 ~ Julian + (1|Species), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(PC1 ~ Event + (1|Species), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(PC1 ~ seconds_since_midnight + (1 | Species), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(PC1 ~ Max_Flock_Size + (1|Species), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(PC1 ~ 1 + (1 | Species), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(PC1 ~ Dist_Closest_Wetland_m  + (1|Species),  data = birds.m, 
+           REML = FALSE)
+m2 <- lmer(PC1 ~ Dist_Closest_Wetland_m  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
 
 
 
 
-# any relationships with tri or beta alone? nothing interesting for Tri ----
+# any relationships with beta alone?----
 
 # filter birds that only contain metabolite information (n = 89)
 birds <- birds %>% 
   filter(!is.na(Beta))
-
 
 # Only include species with at least three individuals
 birds <- birds %>% 
@@ -683,36 +807,20 @@ birds <- birds %>%
   filter(n() >= 3) %>% 
   ungroup()
 
-# standardize data
-birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
-
-
-# cyclical or linear?
-m1 <- lmer(Beta ~ seconds_since_midnight + 
-             sin(2 * pi * seconds_since_midnight / (24 * 3600)) +  
-             cos(2 * pi * seconds_since_midnight / (24 * 3600)) + (1|Species),
-           REML = FALSE, data = birds)
-
-m2 <- lmer(Beta ~ seconds_since_midnight + (1|Species), REML = FALSE, data = birds)
-
-model_names <- paste0("m", 1:2)
-
-models <- mget(model_names)
-
-aictab(models, modnames = model_names) # linear is better
-
 # relabel species names
 birds$Species <- factor(birds$Species, 
-                    levels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
-                               "Longbilled Dowitcher", "Pectoral Sandpiper",
-                               "Semipalmated Sandpiper", "Willet",
-                               "Wilsons Phalarope"),
-                    labels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
-                               "Long-billed Dowitcher", "Pectoral Sandpiper",
-                               "Semipalmated Sandpiper", "Willet",
-                               "Wilson's Phalarope"))
+                        levels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
+                                   "Longbilled Dowitcher", "Pectoral Sandpiper",
+                                   "Semipalmated Sandpiper", "Willet",
+                                   "Wilsons Phalarope"),
+                        labels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
+                                   "Long-billed Dowitcher", "Pectoral Sandpiper",
+                                   "Semipalmated Sandpiper", "Willet",
+                                   "Wilson's Phalarope"))
 
+# standardize data
+birds.cs <- birds %>%
+  mutate(across(where(is.numeric) & !matches("Beta"), scale))
 
 
 # Model Selection (Stage 1) ----------------------------------------------------
@@ -751,16 +859,13 @@ m11 <- lmer(Beta ~ seconds_since_midnight + (1 | Species),
 # flock
 m12 <- lmer(Beta ~ Max_Flock_Size + seconds_since_midnight + (1|Species), data = birds.cs, REML = FALSE)
 
-# null
-m13 <- lmer(Beta ~ 1 + (1 | Species), data = birds.cs, REML = FALSE)
-
-model_names <- paste0("m", 1:13)
+model_names <- paste0("m", 1:12)
 
 models <- mget(model_names)
 
 aictab(models, modnames = model_names) # time + % ag top model and only within 2 AICc
 
-
+confint(m1)
 
 plot(birds$Beta, birds)
 
@@ -823,6 +928,8 @@ plot(predict(m.wls),rstudent(m.wls)) # MUCH better
 summary(m.wls)
 confint(m.wls)
 
+confint(m.wls, method = "Wald")
+
 
 # weighted least squares
 birds %>% summarize(variance = var(Beta), weight = 1/var(Beta))
@@ -863,7 +970,7 @@ ggplot(d, aes(x = PercentAg, y = fit)) +
   theme_classic() +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
   labs(x = "% Surrounding Agriculture within 500 m", 
-       y = "BHOB Levels (mmol/L)") +
+       y = "BHB Levels (mmol/L)") +
   theme(axis.title.x = element_text(size = 21,
                                     margin = margin(t = 12)),
         axis.title.y = element_text(size = 21,
@@ -879,3 +986,358 @@ ggplot(d, aes(x = PercentAg, y = fit)) +
   
 
 plot(m.wls)
+
+# is random effect of site necessary? ----
+# exclude sites with only 1 bird
+birds.m <- birds.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
+
+# agriculture
+m1 <- lmer(Beta ~ PercentAg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Beta ~ Percent_Total_Veg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(Beta ~ Permanence  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+m4 <- lmer(Beta ~ Percent_Exposed_Shoreline  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(Beta ~ Dist_Closest_Wetland_m  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Beta ~ SPEI  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(Beta ~ Sex  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(Beta ~ MigStatus  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(Beta ~ Julian  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(Beta ~ Event  + (1|Species) + (1|Site), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(Beta ~ seconds_since_midnight + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(Beta ~ Max_Flock_Size  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(Beta ~ 1 + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results do not change, some models have singular fit warning
+
+
+# run reduced dataset with site as a random effect ----
+# agriculture
+m1 <- lmer(Beta ~ PercentAg + (1|Species), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Beta ~ Percent_Total_Veg + (1|Species), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(Beta ~ Permanence + (1|Species), data = birds.m, REML = FALSE)
+m4 <- lmer(Beta ~ Percent_Exposed_Shoreline + (1|Species), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(Beta ~ Dist_Closest_Wetland_m + (1|Species),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Beta ~ SPEI + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(Beta ~ Sex + (1|Species), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(Beta ~ MigStatus + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(Beta ~ Julian + (1|Species), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(Beta ~ Event + (1|Species), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(Beta ~ seconds_since_midnight + (1 | Species), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(Beta ~ Max_Flock_Size + (1|Species), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(Beta ~ 1 + (1 | Species), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(Beta ~ PercentAg  + (1|Species),  data = birds.m, 
+           REML = FALSE)
+m2 <- lmer(Beta ~ PercentAg  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
+
+
+
+# any relationships with Tri alone? ----
+
+# filter birds that only contain metabolite information (n = 89)
+birds <- birds %>% 
+  filter(!is.na(Tri))
+
+# relabel species names
+birds$Species <- factor(birds$Species, 
+                        levels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
+                                   "Longbilled Dowitcher", "Pectoral Sandpiper",
+                                   "Semipalmated Sandpiper", "Willet",
+                                   "Wilsons Phalarope"),
+                        labels = c("Killdeer", "Least Sandpiper", "Lesser Yellowlegs",
+                                   "Long-billed Dowitcher", "Pectoral Sandpiper",
+                                   "Semipalmated Sandpiper", "Willet",
+                                   "Wilson's Phalarope"))
+
+# Only include species with at least three individuals
+birds <- birds %>% 
+  group_by(Species) %>% 
+  filter(n() >= 3) %>% 
+  ungroup()
+
+# standardize data
+birds.cs <- birds %>%
+  mutate(across(where(is.numeric) & !matches("Tri"), scale))
+
+
+# Model Selection (Stage 1) ----------------------------------------------------
+
+# agriculture
+m1 <- lmer(Tri ~ PercentAg +  (1|Species), data = birds.cs, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Tri ~ Percent_Total_Veg +  (1|Species), data = birds.cs, REML = FALSE)
+
+# habitat
+m3 <- lmer(Tri ~ Permanence +  (1|Species), data = birds.cs, REML = FALSE)
+m4 <- lmer(Tri ~ Percent_Exposed_Shoreline +  (1|Species), 
+           data = birds.cs, REML = FALSE)
+m5 <- lmer(Tri ~ Dist_Closest_Wetland_m +  (1|Species),  data = birds.cs, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Tri ~ SPEI +  (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+# life history
+m7 <- lmer(Tri ~ Sex +  (1|Species), 
+           data = birds.cs, REML = FALSE)
+m8 <- lmer(Tri ~ MigStatus +  (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+# temporal
+m9 <- lmer(Tri ~ Julian +  (1|Species), 
+           data = birds.cs, REML = FALSE)
+m10 <- lmer(Tri ~ Event +  (1|Species), data = birds.cs,
+            REML = FALSE)
+m11 <- lmer(Tri ~ seconds_since_midnight + (1 | Species), 
+            data = birds.cs, REML = FALSE)
+
+# flock
+m12 <- lmer(Tri ~ Max_Flock_Size + (1|Species), data = birds.cs, REML = FALSE)
+
+# null
+m13 <- lmer(Tri ~ 1 + (1|Species),data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:12)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # no significant parameters
+
+confint(m10)
+
+
+# is random effect of site necessary? ----
+# exclude sites with only 1 bird
+birds.m <- birds.cs %>% 
+  group_by(Site) %>% 
+  filter(n() > 1) %>% 
+  ungroup()
+
+
+# agriculture
+m1 <- lmer(Tri ~ PercentAg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Tri ~ Percent_Total_Veg  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(Tri ~ Permanence  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+m4 <- lmer(Tri ~ Percent_Exposed_Shoreline  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(Tri ~ Dist_Closest_Wetland_m  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Tri ~ SPEI  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(Tri ~ Sex  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(Tri ~ MigStatus  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(Tri ~ Julian  + (1|Species) + (1|Site), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(Tri ~ Event  + (1|Species) + (1|Site), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(Tri ~ seconds_since_midnight + (1 | Species) + (1|Site), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(Tri ~ Max_Flock_Size  + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(Tri ~ 1 + (1|Species) + (1|Site), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results do not change, most models have singular fit warning
+
+
+# run reduced dataset with site as a random effect ----
+# agriculture
+m1 <- lmer(Tri ~ PercentAg + (1|Species), data = birds.m, REML = FALSE)
+
+# vegetation
+m2 <- lmer(Tri ~ Percent_Total_Veg + (1|Species), data = birds.m, REML = FALSE)
+
+# habitat
+m3 <- lmer(Tri ~ Permanence + (1|Species), data = birds.m, REML = FALSE)
+m4 <- lmer(Tri ~ Percent_Exposed_Shoreline + (1|Species), 
+           data = birds.m, REML = FALSE)
+m5 <- lmer(Tri ~ Dist_Closest_Wetland_m + (1|Species),  data = birds.m, 
+           REML = FALSE)
+
+# weather
+m6 <- lmer(Tri ~ SPEI + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# life history
+m7 <- lmer(Tri ~ Sex + (1|Species), 
+           data = birds.m, REML = FALSE)
+m8 <- lmer(Tri ~ MigStatus + (1|Species), 
+           data = birds.m, REML = FALSE)
+
+# temporal
+m9 <- lmer(Tri ~ Julian + (1|Species), 
+           data = birds.m, REML = FALSE)
+m10 <- lmer(Tri ~ Event + (1|Species), data = birds.m,
+            REML = FALSE)
+m11 <- lmer(Tri ~ seconds_since_midnight + (1 | Species), 
+            data = birds.m, REML = FALSE)
+
+# flock
+m12 <- lmer(Tri ~ Max_Flock_Size + (1|Species), data = birds.m, REML = FALSE)
+
+# null
+m13 <- lmer(Tri ~ 1 + (1 | Species), data = birds.m, REML = FALSE)
+
+model_names <- paste0("m", 1:13)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(Tri ~ Event  + (1|Species),  data = birds.m, 
+           REML = FALSE)
+m2 <- lmer(Tri ~ Event  + (1|Species) + (1|Site),  data = birds.m, 
+           REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
+
+# add macroinvertebrate diversity and biomass data for 2023 --------------------
+birds.sub <- subset(birds.cs, !is.na(Biomass))
+
+m <- lmer(PC1 ~ Biomass + (1 | Species), data = birds.sub)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lmer(PC1 ~ Diversity + (1 | Species), data = birds.sub)
+
+summary(m)
+confint(m) # no effect of diversity

@@ -1,6 +1,6 @@
 #-----------------------------------------#
 #  Lesser Yellowlegs Fat Habitat Analysis #
-#          Linear regression              #
+#        Logistic regression              #
 #          Created 2025-04-10             #
 #         Modified 2025-04-11             #
 #-----------------------------------------#

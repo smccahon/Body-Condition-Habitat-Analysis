@@ -1,8 +1,8 @@
 #-----------------------------------#
 # All Species Mass Habitat Analysis #
 #      Linear regression            #
-#       Created 2025-04-11          #
-#      Modified 2025-04-11          #
+#       Created 2025-05-06          #
+#      Modified 2025-05-13          #
 #-----------------------------------#
 
 # load packages
@@ -89,6 +89,16 @@ birds <- birds %>%
 
 # standardize data except for response
 birds.cs <- birds %>%
+  mutate(across(where(is.numeric) & !matches("LogMass"), scale))
+
+# Only include sites with at least three individuals
+birds.s <- birds %>% 
+  group_by(Site) %>% 
+  filter(n() >= 3) %>% 
+  ungroup()
+
+# standardize data except for response
+birds.s.cs <- birds.s %>%
   mutate(across(where(is.numeric) & !matches("LogMass"), scale))
 
 
@@ -243,9 +253,149 @@ confint(m5) # dist. to closest wetland no effect
 summary(m3)
 confint(m3) # mass is higher in birds that use seasonal versus temporal wetlands
 
+# Model Selection with Informed Null (Stage 2) ---------------------------------
+# Julian and SPEI are correlated -- cannot be in the same model
+
+# univariate + informed null
+m1 <- lmer(LogMass ~ SPEI + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m2 <- lmer(LogMass ~ MigStatus + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m3 <- lmer(LogMass ~ Permanence + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m4 <- lmer(LogMass ~ Julian + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m5 <- lmer(LogMass ~ Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+# additive (2)
+m6 <- lmer(LogMass ~ SPEI + MigStatus + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m7 <- lmer(LogMass ~ SPEI + Permanence + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m8 <- lmer(LogMass ~ MigStatus + Permanence + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m9 <- lmer(LogMass ~ MigStatus + Julian + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+m10 <- lmer(LogMass ~ Permanence + Julian + Event * seconds_since_midnight + 
+             (1|Species), data = birds.cs, REML = FALSE)
+
+# additive (3)
+m11 <- lmer(LogMass ~ SPEI + MigStatus + Permanence + Event * seconds_since_midnight + 
+              (1|Species), data = birds.cs, REML = FALSE)
+
+m12 <- lmer(LogMass ~ Julian + MigStatus + Permanence + Event * seconds_since_midnight + 
+              (1|Species), data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:12)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+summary(m6)
+confint(m6)
+
+# Model Selection with Site as Random Effect -----------------------------------
+
+# agriculture
+m1 <- lmer(LogMass ~ PercentAg + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# vegetation
+m2 <- lmer(LogMass ~ Percent_Total_Veg + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# habitat
+m3 <- lmer(LogMass ~ Permanence + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+m4 <- lmer(LogMass ~ Percent_Exposed_Shoreline + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+m5 <- lmer(LogMass ~ Dist_Closest_Wetland_m + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# weather
+m6 <- lmer(LogMass ~ SPEI + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# life history
+m7 <- lmer(LogMass ~ Sex + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+m8 <- lmer(LogMass ~ MigStatus + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+# temporal
+m9 <- lmer(LogMass ~ Julian + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+m10 <- lmer(LogMass ~ Event*seconds_since_midnight + 
+              (1|Species) + (1|Site), data = birds.s.cs,
+            REML = FALSE)
+
+# flock
+m11 <- lmer(LogMass ~ Max_Flock_Size + Event * seconds_since_midnight + 
+              (1|Species) + (1|Site), data = birds.s.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:11)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names) # results don't change and singular fit warning
+
+# Is there enough support to include the random effect? No ----
+m1 <- lmer(LogMass ~ SPEI + Event * seconds_since_midnight + 
+             (1|Species), 
+           data = birds.s.cs, REML = FALSE)
+m2 <- lmer(LogMass ~ SPEI + Event * seconds_since_midnight + 
+             (1|Species) + (1|Site), 
+           data = birds.s.cs, REML = FALSE)
+
+# Calculate AICc values for both models
+AICc_m1 <- AICc(m1)
+AICc_m2 <- AICc(m2)
+
+# Step 1: Calculate delta AICc (ΔAICc)
+delta_AICc_m1 <- AICc_m1 - min(AICc_m1, AICc_m2)
+delta_AICc_m2 <- AICc_m2 - min(AICc_m1, AICc_m2)
+
+# Step 2: Calculate the exponentiated delta AICc values
+exp_delta_m1 <- exp(-delta_AICc_m1 / 2)
+exp_delta_m2 <- exp(-delta_AICc_m2 / 2)
+
+# Step 3: Sum of all exponentiated delta AICc values
+sum_exp_delta <- exp_delta_m1 + exp_delta_m2
+
+# Step 4: Calculate model weights
+weight_m1 <- exp_delta_m1 / sum_exp_delta
+weight_m2 <- exp_delta_m2 / sum_exp_delta
+
+# Step 5: Create a summary data frame
+model_summary <- data.frame(
+  Model = c("m1", "m2"),
+  AICc = c(AICc_m1, AICc_m2),
+  Delta_AICc = c(delta_AICc_m1, delta_AICc_m2),
+  Weight = c(weight_m1, weight_m2)
+)
+
+# Step 6: Display the summary table
+print(model_summary)
+
+
+
 # Plot drought -----------------------------------------------------------------
 m <- lmer(LogMass ~ SPEI + Event * seconds_since_midnight + (1|Species), 
-           data = birds.cs, REML = FALSE)
+           data = birds, REML = FALSE)
 
 d <- expand.grid(SPEI = seq(min(birds$SPEI), 
                                  max(birds$SPEI), 
@@ -326,3 +476,60 @@ summary(m)
 confint(m) # no effect of diversity
 
 plot(birds$LogMass, birds$Biomass)
+
+
+
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+
+birds.tri <- birds %>% 
+  filter(!is.na(Tri)) %>%
+  mutate(across(where(is.numeric) & !matches("Tri"), scale)) %>% 
+  filter(!is.na(Biomass))
+
+birds.beta <- birds %>% 
+  filter(!is.na(Beta)) %>%
+  mutate(across(where(is.numeric) & !matches("Beta"), scale)) %>% 
+  filter(!is.na(Biomass))
+
+birds.uric <- birds %>% 
+  filter(!is.na(Uric)) %>%
+  mutate(across(where(is.numeric) & !matches("Uric"), scale)) %>% 
+  filter(!is.na(Biomass))
+
+birds.fat <- birds %>% 
+  filter(!is.na(Fat)) %>%
+  mutate(across(where(is.numeric) & !matches("Fat"), scale)) %>% 
+  filter(!is.na(Biomass))
+
+m <- lmer(Tri ~ Biomass + (1 | Species), data = birds.tri)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lmer(Tri ~ Diversity + (1 | Species), data = birds.tri)
+
+summary(m)
+confint(m) # no effect of diversity
+
+
+m <- lmer(Beta ~ Biomass + (1 | Species), data = birds.beta)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lmer(Beta ~ Diversity + (1 | Species), data = birds.beta)
+
+summary(m)
+confint(m) # no effect of diversity
+
+
+m <- lmer(Uric ~ Biomass + (1 | Species), data = birds.uric)
+
+summary(m)
+confint(m) # no effect of biomass
+
+m <- lmer(Uric ~ Diversity + (1 | Species), data = birds.uric)
+
+summary(m)
+confint(m) # no effect of diversity
+
