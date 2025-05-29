@@ -128,6 +128,7 @@ leye[complete.cases(leye_subset), "PC2"] <- pca_scores[, 2]
 leye.cs <- leye %>%
   mutate(across(where(is.numeric) & !matches("PC1"), scale))
 
+
 # Test for Correlations--------------------------------------------------------- 
 
 # subset data

@@ -430,7 +430,19 @@ ggplot(d, aes(x = SPEI, y = fit)) +
         legend.position = "top") +
   geom_point(data = birds, aes(x = SPEI, y = LogMass,
                               color = Event), size = 2) +
-  scale_color_viridis_d(alpha = 1, begin = 0, end = 0.9)
+  scale_x_continuous(expand = c(0,0),
+                     breaks = seq(-2, 2.5, by = 0.5)) +
+  coord_cartesian(xlim = c(-1.95,2.4)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray", size = 1) +
+  scale_color_manual(values = c("Fall 2021" = "#440154FF", 
+                                "Spring 2022" = "gold",
+                                "Spring 2023" = "deepskyblue1",
+                                "Fall 2023" = "chocolate1")) +
+  scale_fill_manual(values = c("Fall 2021" = "#440154FF", 
+                                "Spring 2022" = "gold",
+                                "Spring 2023" = "deepskyblue1",
+                                "Fall 2023" = "chocolate1"))
+  
 
 summary(m)
 confint(m)

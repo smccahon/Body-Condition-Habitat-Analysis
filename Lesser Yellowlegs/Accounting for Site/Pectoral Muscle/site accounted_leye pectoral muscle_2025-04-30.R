@@ -320,19 +320,23 @@ ggplot(d, aes(x = (PercentAg), y = fit, color = Age)) +
   geom_ribbon(aes(ymin = lwr, ymax = upr, fill = Age), 
               alpha = 0.25, color = NA, show.legend = FALSE) +
   theme_classic() +
-  labs(x = "% Surrounding Agriculture within 500 m", 
+  labs(x = "% Surrounding Cropland", 
        y = expression("Lesser Yellowlegs Pectoral Muscle Size" ~~~ (mm[score])),
        color = "Age") +
-  theme(axis.title.x = element_text(size = 21, margin = margin(t = 12)),
-        axis.title.y = element_text(size = 21, margin = margin(r = 12)),
-        axis.text.x = element_text(size = 18),
-        axis.text.y = element_text(size = 18),
+  theme(axis.title.x = element_text(size = 19, margin = margin(t = 12)),
+        axis.title.y = element_text(size = 19, margin = margin(r = 12)),
+        axis.text.x = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
         legend.text = element_text(size = 16),
-        legend.title = element_text(size = 18),
+        legend.title = element_text(size = 16),
         legend.position = "top") +
   geom_point(data = leye, aes(x = PercentAg, y = PecSizeBest, 
-                              color = Age), size = 2) +
+                              color = Age), size = 2.5) +
   scale_color_manual(values = c("Juvenile" = "#009E73", 
                                 "Adult" = "#CC79A7")) +
   scale_fill_manual(values = c("Juvenile" = "#009E73",  
-                               "Adult" = "#CC79A7")) 
+                               "Adult" = "#CC79A7")) +
+  scale_x_continuous(expand = c(0,0),
+                     breaks = seq(0, 100, by = 10)) +
+  coord_cartesian(xlim = c(4.5,72))
+

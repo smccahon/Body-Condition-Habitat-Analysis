@@ -1,7 +1,7 @@
 #----------------------------------------------#
 #      All Species Fat Habitat Analysis        #
 #          Created 2025-04-11                  #
-#          Modified 2025-05-13                 #
+#          Modified 2025-05-29                 #
 #----------------------------------------------#
 
 # load packages
@@ -17,19 +17,24 @@ library(lubridate)
 options(digits = 3)
 
 # read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
 
-# ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
+# make detection columns a factor
+# ** note: did not look at neonics in inverts because there were only two detections
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
+
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
-
-birds$Detection <- as.factor(birds$Detection)
 
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
@@ -72,8 +77,8 @@ birds$formatted_time <- format(as.POSIXct(birds$seconds_since_midnight,
                                           origin = "1970-01-01", tz = "UTC"), 
                                "%H:%M")
 
-# only include birds with fat
-birds <- birds %>% 
+# Only include birds with mass 
+birds <- birds %>%
   filter(!is.na(Fat))
 
 # Only include species with at least three individuals
@@ -86,38 +91,33 @@ birds <- birds %>%
 birds.cs <- birds %>%
   mutate(across(where(is.numeric) & !matches("Fat"), scale))
 
-# Only include sites with at least three individuals
-birds.s <- birds %>% 
-  group_by(Site) %>% 
-  filter(n() >= 3) %>% 
-  ungroup()
-
-# standardize data except for response
-birds.s.cs <- birds.s %>%
-  mutate(across(where(is.numeric) & !matches("Fat"), scale))
 
 # Test for Correlations--------------------------------------------------------- 
 
 # subset data
-sample <- birds[, c("PercentAg",
-                    "Percent_Total_Veg",
-                    "Event",
-                    "Sex",
-                    "Biomass",
-                    "Diversity",
-                    "Permanence",
-                    "Percent_Exposed_Shoreline",
-                    "Detection",
-                    "seconds_since_midnight",
-                    "Site",
-                    "AgCategory",
-                    "SPEI",
-                    "Julian",
-                    "DominantCrop",
-                    "NearestCropDistance_m",
-                    "Dist_Closest_Wetland_m",
-                    "Max_Flock_Size",
-                    "MigStatus"
+sample <- birds.cs[, c("PercentAg",
+                       "Percent_Total_Veg",
+                       "Event",
+                       "Sex",
+                       "Biomass",
+                       "Diversity",
+                       "Permanence",
+                       "Percent_Exposed_Shoreline",
+                       "PlasmaDetection",
+                       "seconds_since_midnight",
+                       "Site",
+                       "AgCategory",
+                       "SPEI",
+                       "Julian",
+                       "DominantCrop",
+                       "NearestCropDistance_m",
+                       "Dist_Closest_Wetland_m",
+                       "Max_Flock_Size",
+                       "MigStatus",
+                       "InvertPesticideDetection",
+                       "WaterOrInvertDetection",
+                       "AnyDetection",
+                       "WaterNeonicDetection"
 )]
 
 # convert categorical to numeric for correlation matrix
@@ -126,9 +126,15 @@ sample$Permanence <- as.numeric(sample$Permanence)
 sample$AgCategory <- as.numeric(sample$AgCategory)
 sample$DominantCrop <- as.numeric(sample$DominantCrop)
 sample$Sex <- as.numeric(sample$Sex)
-sample$Detection <- as.numeric(sample$Detection)
+sample$PlasmaDetection <- as.numeric(sample$PlasmaDetection)
+sample$WaterNeonicDetection <- as.numeric(sample$WaterNeonicDetection)
+sample$AnyDetection <- as.numeric(sample$AnyDetection)
+sample$InvertPesticideDetection <- as.numeric(sample$InvertPesticideDetection)
+sample$WaterOrInvertDetection <- as.numeric(sample$WaterOrInvertDetection)
 sample$Site <- as.numeric(sample$Site)
 sample$MigStatus <- as.numeric(sample$MigStatus)
+
+cor(sample, use = "pairwise.complete.obs")
 
 cor(sample)
 # correlations > 0.6:
@@ -175,6 +181,24 @@ models <- mget(model_names)
 aictab(models, modnames = model_names)
 
 confint(m2)
+
+# interaction needed between ag and SPEI?
+m1 <- lmer(Fat ~ PercentAg + Julian * MigStatus + (1 | Species), 
+           data = birds.cs, REML = FALSE)
+m2 <- lmer(Fat ~ SPEI + Julian * MigStatus + (1 | Species), 
+           data = birds.cs, REML = FALSE)
+m3 <- lmer(Fat ~ PercentAg + SPEI + Julian * MigStatus + (1 | Species), 
+           data = birds.cs, REML = FALSE)
+m4 <- lmer(Fat ~ PercentAg * SPEI + Julian * MigStatus + (1 | Species), 
+           data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:4)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+
 
 # transformation for time needed? no
 plot(birds$seconds_since_midnight, birds$Fat)
@@ -403,10 +427,141 @@ confint(m) # no effect of diversity
 
 
 
+# SPEI with IWLS ----
+m <- lmer(Fat ~ SPEI + (1 | Species), data = birds.cs)
+
+birds.cs <- birds.cs %>% 
+  group_by(Species) %>% 
+  mutate(weight = 1 / (var(Fat) + 0.0001)) %>%  # Avoid division by zero
+  ungroup()
 
 
+m.wls <- lmer(Fat ~ SPEI + (1|Species),
+              data = birds.cs,
+              REML = FALSE,
+              weights = weight)
+
+# Wald (asymptotic confidence intervals), based on fixed effect estimates
+confint(m.wls, method = "Wald")
+
+d <- expand.grid(PercentAg = seq(min(birds$PercentAg), 
+                                 max(birds$PercentAg), 
+                                 length.out = 1000),
+                 seconds_since_midnight = mean(birds$seconds_since_midnight),
+                 Species = unique(birds$Species))
+
+predictions <- predict(m.wls, newdata = d, se.fit = TRUE, re.form = NA)
+
+d$fit <- predictions$fit
+
+d$lwr <- d$fit - 1.96 * predictions$se.fit
+d$upr <- d$fit + 1.96 * predictions$se.fit
 
 
+ggplot(d, aes(x = PercentAg, y = fit)) +
+  geom_line(size = 1) +  
+  theme_classic() +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
+  labs(x = "% Surrounding Agriculture within 500 m", 
+       y = "BHB Levels (mmol/L)") +
+  theme(axis.title.x = element_text(size = 21,
+                                    margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21,
+                                    margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.position = "top") +
+  geom_point(data = birds, aes(x = PercentAg, y = Beta, color = Species), 
+             size = 3) +
+  scale_color_viridis_d(begin = 0, end = 1, alpha = 0.8)
 
+
+plot(m.wls)
+
+
+# do neonics explain any further variation of fat than event * time? ----
+# informative covariates: Julian * Migratory Status, Event * Time (no informed null)
+
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 110, y: 60 (n = 170)
+table(birds$WaterNeonicDetection) # n: 150, y: 25 (n = 175)
+table(birds$AnyDetection) # n: 53, y: 124 (n = 177)
+table(birds$WaterOrInvertDetection) # n: 85, y: 92 (n = 177)
+table(birds$InvertPesticideDetection) # n: 56, y: 67 (n = 123)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 8.76 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 79.4 ug/L
+
+# water neonic detection --> neonics not informative
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 174
+
+m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.water,
+           REML = FALSE)
+m2 <- lmer(LogMass ~ Event * seconds_since_midnight + WaterNeonicDetection + 
+             (1|Species), data = birds.clean.water, REML = FALSE)
+m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
+           data = birds.clean.water, REML = FALSE)
+m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
+             WaterNeonicDetection, data = birds.clean.water, REML = FALSE)
+
+# invertebrate pesticide detection --> neonics not informative
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 122
+
+m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.water,
+           REML = FALSE)
+m2 <- lmer(LogMass ~ Event * seconds_since_midnight + InvertPesticideDetection + 
+             (1|Species), data = birds.clean.water, REML = FALSE)
+m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
+           data = birds.clean.water, REML = FALSE)
+m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
+             InvertPesticideDetection, data = birds.clean.water, REML = FALSE)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 176
+
+m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
+m2 <- lmer(LogMass ~ Event * seconds_since_midnight + WaterOrInvertDetection + 
+             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
+m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
+           data = birds.clean.waterorinvert, REML = FALSE)
+m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
+             WaterOrInvertDetection, data = birds.clean.waterorinvert, REML = FALSE)
+
+
+# shorebird plasma detection --> neonics not informative
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 169
+
+m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+m2 <- lmer(LogMass ~ Event * seconds_since_midnight + PlasmaDetection + 
+             (1|Species), data = birds.clean.plasma, REML = FALSE)
+m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
+           data = birds.clean.plasma, REML = FALSE)
+m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
+             PlasmaDetection, data = birds.clean.plasma, REML = FALSE)
+
+# any detection (plasma or environmental) --> neonics not informative
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 176
+
+m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.any,
+           REML = FALSE)
+m2 <- lmer(LogMass ~ Event * seconds_since_midnight + AnyDetection + 
+             (1|Species), data = birds.clean.any, REML = FALSE)
+m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
+           data = birds.clean.any, REML = FALSE)
+m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
+             AnyDetection, data = birds.clean.any, REML = FALSE)
+
+### ...AIC 
+models <- list(m1, m2, m3, m4)
+model.sel(models)
+
+# model summaries:
+summary(m4)
+confint(m4)
 
 

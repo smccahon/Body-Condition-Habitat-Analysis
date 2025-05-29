@@ -193,6 +193,17 @@ confint(m1)
 
 # ag category is best (not significant), but % ag is still within 2 delta AICc
 
+# interaction between SPEI & ag?
+m1 <- lmer(PC1 ~ PercentAg + (1|Species), data = birds.cs, REML = FALSE)
+m2 <- lmer(PC1 ~ SPEI + (1|Species), data = birds.cs, REML = FALSE)
+m3 <- lmer(PC1 ~ PercentAg * SPEI + (1|Species), data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:3)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 # temporal
 m1 <- lmer(PC1 ~ Julian + MigStatus + (1|Species), data = birds.cs, 
            REML = FALSE)
@@ -674,7 +685,7 @@ summary(lm(residuals ~ PercentAg, data = birds.cs)) # Adj. R2 = -0.0102
 
 # filter birds that only contain metabolite information (n = 89)
 birds <- birds %>% 
-  filter(!is.na(Beta))
+  filter(!is.na(Tri))
 
 
 # Only include species with at least three individuals
@@ -685,8 +696,21 @@ birds <- birds %>%
 
 # standardize data
 birds.cs <- birds %>%
-  mutate(across(where(is.numeric), scale))
+  mutate(across(where(is.numeric) & !matches("Tri"), scale))
 
+# is interaction between SPEI and Ag needed?
+m1 <- lmer(Tri ~ PercentAg + seconds_since_midnight + (1|Species), 
+           data = birds.cs, REML = FALSE)
+m2 <- lmer(Tri ~ SPEI + seconds_since_midnight + (1|Species), 
+           data = birds.cs, REML = FALSE)
+m3 <- lmer(Tri ~ PercentAg * SPEI + seconds_since_midnight + (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:3)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
 
 # cyclical or linear?
 m1 <- lmer(Beta ~ seconds_since_midnight + 

@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Refueling Rates Habitat Analysis #
 #               linear regression                    #
 #               Created 2025-04-03                   #
-#              Modified 2025-04-11                   #
+#              Modified 2025-05-29                   #
 #----------------------------------------------------#
 
 # load packages
@@ -16,19 +16,29 @@ library(viridis)
 library(lubridate)
 
 # read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
 
 # ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
 
-birds$Detection <- as.factor(birds$Detection)
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
+
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
+
+# ...reorder and manipulate relevant factor variables ----
+birds$Sex <- factor(birds$Sex,
+                    levels = c("M", "F"),
+                    labels = c("Male", "Female"))
 
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
@@ -216,6 +226,26 @@ models <- mget(model_names)
 aictab(models, modnames = model_names)
 
 # Julian is better
+
+# interaction between ag and drought needed?
+m1 <- lm(PC1 ~ PercentAg + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m2 <- lm(PC1 ~ SPEI + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m3 <- lm(PC1 ~ PercentAg + SPEI + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+m4 <- lm(PC1 ~ PercentAg * SPEI + seconds_since_midnight +
+           sin(2 * pi * seconds_since_midnight / (24 * 3600)) +
+           cos(2 * pi * seconds_since_midnight / (24 * 3600)), data = leye)
+
+model_names <- paste0("m", 1:4)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
 
 # Modeling time & Percent Ag (linear)----------------------------------
 
@@ -553,6 +583,75 @@ ggplot(leye.cs, aes(x = PercentAg, y = residuals)) +
         axis.text = element_text(size = 12))
 
 summary(lm(residuals ~ PercentAg, data = leye.cs)) # Adj. R2 = -0.0241
+
+
+# do neonics explain any further variation of fattening index than time (cycical)? ----
+# informative covariates: time (cyclical)
+
+
+# summary statistics----
+table(leye$PlasmaDetection) # n: 21, y: 8 (n = 29)
+table(leye$WaterNeonicDetection) # n: 25, y: 4 (n = 29)
+table(leye$AnyDetection) # n: 10, y: 19 (n = 29)
+table(leye$WaterOrInvertDetection) # n: 11, y: 18 (n = 29)
+table(leye$InvertPesticideDetection) # n: 10, y: 14 (n = 24)
+
+mean(leye$OverallNeonic, na.rm = TRUE) # 0.728 ug/L
+sd(leye$OverallNeonic, na.rm = TRUE) # 1.96 ug/L
+
+# water neonic detection --> neonics not informative
+leye.clean.water <- leye.cs[!is.na(leye.cs$WaterNeonicDetection), ] #n = 29
+
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos, data = leye.clean.water)
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos + WaterNeonicDetection, data = leye.clean.water)
+
+# invertebrate pesticide detection --> neonics not informative
+leye.clean.invert <- leye.cs[!is.na(leye.cs$InvertPesticideDetection), ] # n = 24
+
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos, data = leye.clean.invert)
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos + InvertPesticideDetection, data = leye.clean.invert)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+leye.clean.waterorinvert <- leye.cs[!is.na(leye.cs$WaterOrInvertDetection), ] #n = 29
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos, data = leye.clean.waterorinvert)
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+
+# shorebird plasma detection --> neonics not informative
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos, data = leye.cs)
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos + PlasmaDetection, data = leye.cs)
+
+# any detection (plasma or environmental) --> neonics not informative
+m1 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos, data = leye.cs)
+m2 <- lm(PC1 ~ seconds_since_midnight + 
+           sin + 
+           cos + AnyDetection, data = leye.cs)
+
+### ...AIC 
+models <- list(m1, m2)
+model.sel(models)
+
+# model summaries:
+summary(m2)
+confint(m2)
+
 
 
 

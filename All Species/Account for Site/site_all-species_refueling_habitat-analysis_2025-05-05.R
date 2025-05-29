@@ -1,7 +1,7 @@
 #----------------------------------------------#
 # All Species Refueling Rates Habitat Analysis #
 #            Created 2025-05-05                #
-#           Modified 2025-05-05                #
+#           Modified 2025-05-20                #
 #----------------------------------------------#
 
 # load packages
@@ -904,7 +904,18 @@ ggplot(d, aes(x = PercentAg, y = fit)) +
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 15),
         legend.position = "top") +
-  geom_point(data = birds, aes(x = PercentAg, y = Beta, color = Species), size = 3)
+  geom_point(data = birds, aes(x = PercentAg, y = Beta, color = Species), 
+             size = 3) +
+  scale_color_manual(values = c(
+    "#0072B2",  # Blue
+    "#D55E00",  # Vermilion
+    "#009E73",  # Bluish Green
+    "#E69F00",  # Orange
+    "#CC79A7",  # Reddish Purple
+    "#56B4E9",  # Sky Blue
+    "#F0E442",  # Yellow
+    "#000000"   # Black
+  ))
 
 plot(m) # severe heteroscedasticity
 
@@ -930,7 +941,8 @@ confint(m.wls)
 
 confint(m.wls, method = "Wald")
 
-
+# THESIS PLOT ----
+library(ggbeeswarm)
 # weighted least squares
 birds %>% summarize(variance = var(Beta), weight = 1/var(Beta))
 
@@ -940,8 +952,6 @@ birds <- birds %>%
   mutate(w = 1/var(Beta)) %>% 
   ungroup()
 
-
-
 m.wls <- lmer(Beta ~ PercentAg + (1|Species) + seconds_since_midnight,
               data = birds,
               REML = FALSE,
@@ -949,7 +959,9 @@ m.wls <- lmer(Beta ~ PercentAg + (1|Species) + seconds_since_midnight,
 
 
 # Wald (asymptotic confidence intervals), based on fixed effect estimates
-confint(m.wls, method = "Wald")
+# confint(m.wls, method = "Wald")
+
+# THESIS PLOT ----
 
 d <- expand.grid(PercentAg = seq(min(birds$PercentAg), 
                                  max(birds$PercentAg), 
@@ -965,11 +977,67 @@ d$lwr <- d$fit - 1.96 * predictions$se.fit
 d$upr <- d$fit + 1.96 * predictions$se.fit
 
 
+# ggplot(d, aes(x = PercentAg, y = fit)) +
+#   geom_line(size = 1) +  
+#   theme_bw() +
+#   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
+#   labs(x = "% Surrounding Agriculture within 500 m", 
+#        y = "BHB Levels (mmol/L)") +
+#   theme(axis.title.x = element_text(size = 21,
+#                                     margin = margin(t = 12)),
+#         axis.title.y = element_text(size = 21,
+#                                     margin = margin(r = 12)),
+#         axis.text.x = element_text(size = 18),
+#         axis.text.y = element_text(size = 18),
+#         legend.text = element_text(size = 12),
+#         legend.title = element_text(size = 15),
+#         legend.position = "top") +
+#   geom_beeswarm(data = birds, aes(x = PercentAg, y = Beta, color = Species,
+#                                   fill = Species,
+#                                   shape = Species), 
+#              size = 3.5, color = "black", groupOnX = TRUE) +
+#   scale_color_manual(values = c(
+#     "#0072B2", 
+#     "#000000",
+#     "#009E73", 
+#     "burlywood4",
+#     "#CC79A7", 
+#     "#56B4E9",
+#     "#F0E442",
+#     "#D55E00"
+#   )) +
+#   scale_fill_manual(values = c(
+#     "#0072B2", 
+#     "#000000",
+#     "#009E73", 
+#     "burlywood4",
+#     "#CC79A7", 
+#     "#56B4E9",
+#     "#F0E442",
+#     "#D55E00"
+#   )) +
+#     # scale_shape_manual(values = c(15,17,16,25,19,21,22,24)) +
+#   # scale_shape_manual(values = c(15,15,16,16,17,17,25,25)) +
+#   scale_shape_manual(values = c(21, 21, 22, 22, 24, 24, 25, 25))
+
+library(viridisLite)
+
+# Generate 8 viridis colors
+vir <- viridisLite::viridis(8)
+
+# Manually reorder to alternate light/dark (approx)
+alt_viridis <- vir[c(1,8,2,7,3,6,4,5)]
+
+# View it
+scales::show_col(alt_viridis)
+
+
+# xaxis zoomed
 ggplot(d, aes(x = PercentAg, y = fit)) +
   geom_line(size = 1) +  
   theme_classic() +
   geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
-  labs(x = "% Surrounding Agriculture within 500 m", 
+  labs(x = "% Surrounding Cropland", 
        y = "BHB Levels (mmol/L)") +
   theme(axis.title.x = element_text(size = 21,
                                     margin = margin(t = 12)),
@@ -980,10 +1048,59 @@ ggplot(d, aes(x = PercentAg, y = fit)) +
         legend.text = element_text(size = 12),
         legend.title = element_text(size = 15),
         legend.position = "top") +
-  geom_point(data = birds, aes(x = PercentAg, y = Beta, color = Species), 
-             size = 3) +
-  scale_color_viridis_d(begin = 0, end = 1, alpha = 0.8)
-  
+  geom_beeswarm(data = birds, aes(x = PercentAg, y = Beta, color = Species,
+                                  fill = Species,
+                                  shape = Species), 
+                size = 3, color = "black", groupOnX = TRUE) +
+  # scale_color_manual(values = c(
+  #   "#3B528BFF",  # dark purple
+  #   "#FDE725FF",  # light yellow-green
+  #   "#31688EFF",  # dark blue
+  #   "#B8DE29FF",  # light olive
+  #   "#21908CFF",  # dark teal
+  #   "#FDE725FF",  # light lime
+  #   "#440154FF",  # dark indigo
+  #   "#73D055FF"   # light green
+  # )) +
+  # scale_fill_manual(values = c(
+  #   "#3B528BFF",
+  #   "#FDE725FF",
+  #   "#31688EFF",
+  #   "#B8DE29FF",
+  #   "#21908CFF",
+  #   "#FDE725FF",
+  #   "#440154FF",
+  #   "#73D055FF"
+  # )) +
+  scale_color_manual(values = c(
+    "firebrick", 
+    "#A6CEE3", 
+    "dodgerblue4",  
+    "lightsalmon",  
+    "darkgreen",  
+    "#FFDD44",  
+    "black",  
+    "gray"   
+  )) +
+  scale_fill_manual(values = c(
+    "firebrick", 
+    "#A6CEE3", 
+    "dodgerblue4",  
+    "lightsalmon",  
+    "darkgreen",  
+    "#FFDD44",  
+    "black",  
+    "gray"   
+  ))+
+  scale_shape_manual(values = c(21, 21, 22, 22, 24, 24, 25, 25)) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_x_continuous(expand = c(0,0),
+                     breaks = seq(0,100, by = 10)) +
+  coord_cartesian(ylim = c(-0.025,2.5),
+                  xlim = c(0,89))
+
+
+
 
 plot(m.wls)
 

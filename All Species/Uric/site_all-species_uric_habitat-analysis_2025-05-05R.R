@@ -157,6 +157,20 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
+# interaction needed between SPEI and Ag?
+m1 <- lmer(Uric ~ PercentAg + (1|Species), data = birds.cs, 
+           REML = FALSE)
+m2 <- lmer(Uric ~ SPEI + (1|Species), data = birds.cs, 
+           REML = FALSE)
+m3 <- lmer(Uric ~ PercentAg * SPEI + (1|Species), data = birds.cs, 
+           REML = FALSE)
+
+model_names <- paste0("m", 1:3)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 # model without interaction performs better
 
 # Model Selection (Stage 1) ----------------------------------------------------
@@ -410,9 +424,16 @@ ggplot(d, aes(x = Percent_Exposed_Shoreline, y = fit)) +
         legend.title = element_text(size = 15),
         legend.position = "top") +
   geom_point(data = birds, 
-             aes(x = Percent_Exposed_Shoreline, y = Uric, color = MigStatus), size = 2) +
+             aes(x = Percent_Exposed_Shoreline, y = Uric, color = MigStatus), size = 2.5) +
   scale_color_viridis_d(alpha = 1, begin = 0, end = 0.8) +
-  scale_fill_viridis_d(alpha = 1, begin = 0, end = 0.8)
+  scale_fill_viridis_d(alpha = 1, begin = 0, end = 0.8) +
+  scale_y_continuous(expand = c(0,0),
+                     breaks = seq(0, 2250, by = 500)) +
+  scale_x_continuous(expand = c(0,0),
+                     breaks = seq(0, 100, by = 10)) +
+  coord_cartesian(ylim = c(-15,2250),
+                  xlim = c(5,105))
+
 
 
 

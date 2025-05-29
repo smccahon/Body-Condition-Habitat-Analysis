@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Pectoral Muscle Habitat Analysis #
 #                linear regression                   #
 #               Created 2025-04-07                   #
-#              Modified 2025-04-28                   #
+#              Modified 2025-05-29                   #
 #----------------------------------------------------#
 
 # load packages
@@ -16,20 +16,28 @@ library(viridis)
 library(lubridate)
 
 # read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
 
 # ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
 
-birds$Detection <- as.factor(birds$Detection)
+# make detection columns a factor
+# ** note: did not look at neonics in inverts because there were only two detections
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
 
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
+
+# categorize other factor variables
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
 
@@ -40,7 +48,8 @@ birds$DominantCrop <- factor(birds$DominantCrop,
                                         "Canola"))
 
 birds$Event <- factor(birds$Event,
-                      levels = c("Spring 2022",
+                      levels = c("Fall 2021",
+                                 "Spring 2022",
                                  "Fall 2023"))
 
 birds$Site <- as.factor(birds$Site)
@@ -58,10 +67,6 @@ birds$Permanence <- factor(birds$Permanence,
 
 # ...subset and filter data ----
 leye <- subset(birds, Species %in% c("Lesser Yellowlegs"))
-
-leye$Event <- factor(leye$Event, 
-                     levels = c("Spring 2022", "Fall 2023"),
-                     labels = c("Spring 2022", "Fall 2023"))
 
 # standardize time to something more simple ------------------------------------
 leye$Time <- strptime(leye$Time, format = "%H:%M")
@@ -219,6 +224,18 @@ aictab(models, modnames = model_names)
 
 summary(m1)
 
+# interaction between ag and drought needed?
+m1 <- lm(PecSizeBest ~ PercentAg, data = leye)
+m2 <- lm(PecSizeBest ~ SPEI, data = leye)
+m3 <- lm(PecSizeBest ~ SPEI + PercentAg, data = leye)
+m4 <- lm(PecSizeBest ~ SPEI * PercentAg, data = leye)
+
+model_names <- paste0("m", 1:4)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 # Model Selection --------------------------------------------------------------
 
 # agriculture
@@ -304,7 +321,7 @@ ggplot(d, aes(x = (PercentAg), y = fit, color = Age)) +
   geom_line(size = 0.8) + 
   geom_ribbon(aes(ymin = lwr, ymax = upr, fill = Age), 
               alpha = 0.25, color = NA, show.legend = FALSE) +
-  theme_classic() +
+  theme_bw() +
   labs(x = "% Surrounding Agriculture within 500 m", 
        y = expression("Lesser Yellowlegs Pectoral Muscle Size" ~~~ (mm[score])),
        color = "Age") +
@@ -641,3 +658,169 @@ m <- lm(PecSizeBest ~ Diversity, data = birds.sub)
 
 summary(m)
 confint(m) # no effect of diversity
+
+#------------------------------------------------------------------------------#
+
+# do neonics explain any further variation in pectoral muscle size? ----
+# informative covariates: age, % ag, Julian
+
+
+# summary statistics----
+table(leye$PlasmaDetection) # n: 24, y: 17 (n = 41)
+table(leye$WaterNeonicDetection) # n: 32, y: 8 (n = 40)
+table(leye$AnyDetection) # n: 12, y: 29 (n = 41)
+table(leye$WaterOrInvertDetection) # n: 18, y: 23 (n = 41)
+table(leye$InvertPesticideDetection) # n: 15, y: 15 (n = 30)
+
+mean(leye$OverallNeonic, na.rm = TRUE) # 2.39 ug/L
+sd(leye$OverallNeonic, na.rm = TRUE) # 10.2 ug/L
+
+# water neonic detection --> neonics not informative (n = 40)
+leye.clean.water <- leye.cs[complete.cases(leye.cs[, c("PecSizeBest", "Age", 
+                                                        "PercentAg", 
+                                                        "WaterNeonicDetection", 
+                                                        "Julian")]), ]
+
+m1 <- lm(PecSizeBest ~ Age + PercentAg, data = leye.clean.water)
+m2 <- lm(PecSizeBest ~ PercentAg, data = leye.clean.water)
+m3 <- lm(PecSizeBest ~ Age, data = leye.clean.water)
+m4 <- lm(PecSizeBest ~ WaterNeonicDetection, data = leye.clean.water)
+m5 <- lm(PecSizeBest ~ Julian, data = leye.clean.water)
+m6 <- lm(PecSizeBest ~ Age + WaterNeonicDetection, data = leye.clean.water)
+m7 <- lm(PecSizeBest ~ WaterNeonicDetection + PercentAg, data = leye.clean.water)
+m8 <- lm(PecSizeBest ~ Age + PercentAg + WaterNeonicDetection, data = leye.clean.water)
+m9 <- lm(PecSizeBest ~ Age + PercentAg + WaterNeonicDetection +
+           Julian, data = leye.clean.water)
+m10 <- lm(PecSizeBest ~ Age + Julian, data = leye.clean.water)
+m11 <- lm(PecSizeBest ~ Age + PercentAg + Julian, data = leye.clean.water)
+m12 <- lm(PecSizeBest ~ Julian + PercentAg, data = leye.clean.water)
+m13 <- lm(PecSizeBest ~ Julian + WaterNeonicDetection, data = leye.clean.water)
+m14 <- lm(PecSizeBest ~ Julian + WaterNeonicDetection + PercentAg, data = leye.clean.water)
+m15 <- lm(PecSizeBest ~ Age + Julian + WaterNeonicDetection, data = leye.clean.water)
+
+
+# invertebrate pesticide detection --> neonics not informative
+leye.clean.invert <- leye.cs[complete.cases(leye.cs[, c("PecSizeBest", "Age", 
+                                                        "PercentAg", 
+                                                        "InvertPesticideDetection", 
+                                                        "Julian")]), ]
+
+m1 <- lm(PecSizeBest ~ Age + PercentAg, data = leye.clean.invert)
+m2 <- lm(PecSizeBest ~ PercentAg, data = leye.clean.invert)
+m3 <- lm(PecSizeBest ~ Age, data = leye.clean.invert)
+m4 <- lm(PecSizeBest ~ InvertPesticideDetection, data = leye.clean.invert)
+m5 <- lm(PecSizeBest ~ Julian, data = leye.clean.invert)
+m6 <- lm(PecSizeBest ~ Age + InvertPesticideDetection, data = leye.clean.invert)
+m7 <- lm(PecSizeBest ~ InvertPesticideDetection + PercentAg, data = leye.clean.invert)
+m8 <- lm(PecSizeBest ~ Age + PercentAg + InvertPesticideDetection, data = leye.clean.invert)
+m9 <- lm(PecSizeBest ~ Age + PercentAg + InvertPesticideDetection +
+           Julian, data = leye.clean.invert)
+m10 <- lm(PecSizeBest ~ Age + Julian, data = leye.clean.invert)
+m11 <- lm(PecSizeBest ~ Age + PercentAg + Julian, data = leye.clean.invert)
+m12 <- lm(PecSizeBest ~ Julian + PercentAg, data = leye.clean.invert)
+m13 <- lm(PecSizeBest ~ Julian + InvertPesticideDetection, data = leye.clean.invert)
+m14 <- lm(PecSizeBest ~ Julian + InvertPesticideDetection + PercentAg, data = leye.clean.invert)
+m15 <- lm(PecSizeBest ~ Age + Julian + InvertPesticideDetection, data = leye.clean.invert)
+
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+leye.clean.waterorinvert <- leye.cs[complete.cases(leye.cs[, c("PecSizeBest", "Age", 
+                                                        "PercentAg", 
+                                                        "WaterOrInvertDetection", 
+                                                        "Julian")]), ]
+
+m1 <- lm(PecSizeBest ~ Age + PercentAg, data = leye.clean.waterorinvert)
+m2 <- lm(PecSizeBest ~ PercentAg, data = leye.clean.waterorinvert)
+m3 <- lm(PecSizeBest ~ Age, data = leye.clean.waterorinvert)
+m4 <- lm(PecSizeBest ~ WaterOrInvertDetection, data = leye.clean.waterorinvert)
+m5 <- lm(PecSizeBest ~ Julian, data = leye.clean.waterorinvert)
+m6 <- lm(PecSizeBest ~ Age + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+m7 <- lm(PecSizeBest ~ WaterOrInvertDetection + PercentAg, data = leye.clean.waterorinvert)
+m8 <- lm(PecSizeBest ~ Age + PercentAg + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+m9 <- lm(PecSizeBest ~ Age + PercentAg + WaterOrInvertDetection +
+           Julian, data = leye.clean.waterorinvert)
+m10 <- lm(PecSizeBest ~ Age + Julian, data = leye.clean.waterorinvert)
+m11 <- lm(PecSizeBest ~ Age + PercentAg + Julian, data = leye.clean.waterorinvert)
+m12 <- lm(PecSizeBest ~ Julian + PercentAg, data = leye.clean.waterorinvert)
+m13 <- lm(PecSizeBest ~ Julian + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+m14 <- lm(PecSizeBest ~ Julian + WaterOrInvertDetection + PercentAg, data = leye.clean.waterorinvert)
+m15 <- lm(PecSizeBest ~ Age + Julian + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+
+
+# shorebird plasma detection --> positive relationship with pecs...influenced by season
+leye.clean.plasma <- leye.cs[complete.cases(leye.cs[, c("PecSizeBest", "Age", 
+                                                               "PercentAg", 
+                                                               "PlasmaDetection", 
+                                                               "Julian",
+                                                        "Event")]), ]
+
+m1 <- lm(PecSizeBest ~ Age + PercentAg, data = leye.clean.plasma)
+m2 <- lm(PecSizeBest ~ PercentAg, data = leye.clean.plasma)
+m3 <- lm(PecSizeBest ~ Age, data = leye.clean.plasma)
+m4 <- lm(PecSizeBest ~ PlasmaDetection, data = leye.clean.plasma)
+m5 <- lm(PecSizeBest ~ Julian, data = leye.clean.plasma)
+m6 <- lm(PecSizeBest ~ Age + PlasmaDetection, data = leye.clean.plasma)
+m7 <- lm(PecSizeBest ~ PlasmaDetection + PercentAg, data = leye.clean.plasma)
+m8 <- lm(PecSizeBest ~ Age + PercentAg + PlasmaDetection, data = leye.clean.plasma)
+m9 <- lm(PecSizeBest ~ Age + PercentAg + PlasmaDetection +
+           Julian, data = leye.clean.plasma)
+m10 <- lm(PecSizeBest ~ Age + Julian, data = leye.clean.plasma)
+m11 <- lm(PecSizeBest ~ Age + PercentAg + Julian, data = leye.clean.plasma)
+m12 <- lm(PecSizeBest ~ Julian + PercentAg, data = leye.clean.plasma)
+m13 <- lm(PecSizeBest ~ Julian + PlasmaDetection, data = leye.clean.plasma)
+m14 <- lm(PecSizeBest ~ Julian + PlasmaDetection + PercentAg, data = leye.clean.plasma)
+m15 <- lm(PecSizeBest ~ Age + Julian + PlasmaDetection, data = leye.clean.plasma)
+
+# correlations & explanations for opposite result
+plot(leye.clean.plasma$PlasmaDetection, leye.clean.plasma$PecSizeBest)
+plot(leye.clean.plasma$Julian, leye.clean.plasma$PecSizeBest)
+plot(leye.clean.plasma$Event, leye.clean.plasma$PecSizeBest)
+
+table(leye.clean.plasma$PlasmaDetection, leye.clean.plasma$Event)
+leye$PlasmaDetection <- as.numeric(leye$PlasmaDetection)
+leye$Event <- as.numeric(leye$Event)
+
+cor(leye$PlasmaDetection, leye$Event)
+cor(leye$PlasmaDetection, leye$Julian) # highly influenced by date
+
+leye$Event <- as.factor(leye$Event)
+
+leye.cs$Event <- relevel(leye.cs$Event, ref = "Fall 2023")
+m <- lm(PecSizeBest ~ Event, data= leye.cs) # not significant
+
+summary(m)
+
+t.test(data = leye, PecSizeBest~Event) # marginal difference
+
+
+# any detection (plasma or environmental) --> neonics not informative
+leye.clean.all <- leye.cs[complete.cases(leye.cs[, c("PecSizeBest", "Age", 
+                                                        "PercentAg", 
+                                                        "PlasmaDetection", 
+                                                        "Julian")]), ]
+
+m1 <- lm(PecSizeBest ~ Age + PercentAg, data = leye.clean.all)
+m2 <- lm(PecSizeBest ~ PercentAg, data = leye.clean.all)
+m3 <- lm(PecSizeBest ~ Age, data = leye.clean.all)
+m4 <- lm(PecSizeBest ~ AnyDetection, data = leye.clean.all)
+m5 <- lm(PecSizeBest ~ Julian, data = leye.clean.all)
+m6 <- lm(PecSizeBest ~ Age + AnyDetection, data = leye.clean.all)
+m7 <- lm(PecSizeBest ~ AnyDetection + PercentAg, data = leye.clean.all)
+m8 <- lm(PecSizeBest ~ Age + PercentAg + AnyDetection, data = leye.clean.all)
+m9 <- lm(PecSizeBest ~ Age + PercentAg + AnyDetection +
+           Julian, data = leye.clean.all)
+m10 <- lm(PecSizeBest ~ Age + Julian, data = leye.clean.all)
+m11 <- lm(PecSizeBest ~ Age + PercentAg + Julian, data = leye.clean.all)
+m12 <- lm(PecSizeBest ~ Julian + PercentAg, data = leye.clean.all)
+m13 <- lm(PecSizeBest ~ Julian + AnyDetection, data = leye.clean.all)
+m14 <- lm(PecSizeBest ~ Julian + AnyDetection + PercentAg, data = leye.clean.all)
+m15 <- lm(PecSizeBest ~ Age + Julian + AnyDetection, data = leye.clean.all)
+
+### ...AIC 
+models <- list(m1, m2, m3, m4, m5, m6, m7, m8, m9, m10, m11, m12, m13, m14, m15)
+model.sel(models)
+
+# model summaries:
+summary(m8)
+confint(m8)
+

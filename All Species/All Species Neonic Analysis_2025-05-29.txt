@@ -1,0 +1,199 @@
+All Species Body Condition Analysis + Neonics 
+Created by Shelby McCahon on 2025-05-29
+Modified 2025-05-29
+
+Q: Do neonicotinoid detections explain any further variation in body condition and prey availability?
+
+**Detection Summary:
+Plasma Detection: Neonic detection in shorebird plasma
+Water Neonic Detection: Neonic detection in water sample
+Invert Pesticide Detection: Any pesticide detection in invert sample (note: could not look at neonics specifically because only 2 samples had neonics and none were in capture sites)
+Water or Invert Detection (environmental detection: Detection of pesticide in water or invert
+Any Detection: Any detection across any sample type
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 109, y: 60 (n = 169)
+table(birds$WaterNeonicDetection) # n: 149, y: 25 (n = 174)
+table(birds$AnyDetection) # n: 52, y: 124 (n = 176)
+table(birds$WaterOrInvertDetection) # n: 84, y: 92 (n = 176)
+table(birds$InvertPesticideDetection) # n: 55, y: 67 (n = 122)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 8.76 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 79.4 ug/L
+
+#-----------------------------------------------------------------------#
+
+All Species Body Mass (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: SPEI & Event*Time (informed null)
+
+
+# Add Water Neonic Detection (WND) --> not informative (B = -0.0837, CI: -0.18352,  0.0162)
+
+Model selection table
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn WND    SPE df logLik  AICc delta weight
+4  4.60   +       0.179               +   + 0.0564 12   46.9 -67.8  0.00  0.415
+3  4.56   +       0.187               +     0.0651 11   45.5 -67.4  0.39  0.341
+2  4.55   +       0.174               +   +        11   44.8 -66.1  1.74  0.174
+1  4.49   +       0.183               +            10   42.8 -64.2  3.58  0.069
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Invert Pesticide Detection (IPD) --> not more informative (B = 0.017152, CI: -0.0581, 0.0925) 
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn IPD    SPE df logLik  AICc delta weight
+3  4.56   +    0.187100               +     0.0651 11   45.5 -67.4  0.00  0.831
+1  4.49   +    0.183100               +            10   42.8 -64.2  3.19  0.169
+4  4.28   +    0.000475               +   + 0.0613  8   18.3 -19.4 48.03  0.000
+2  4.31   +    0.005211               +   +         7   16.6 -18.2 49.22  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Water Or Invert Detection (WOI) --> not more informative (B = -0.0165, CI: -0.0737,  0.0407)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn WOI    SPE df logLik  AICc delta weight
+3  4.56   +       0.187               +     0.0651 11   45.3 -67.1  0.00  0.607
+4  4.57   +       0.185               +   + 0.0665 12   45.5 -65.1  1.98  0.225
+1  4.49   +       0.183               +            10   42.6 -63.9  3.15  0.125
+2  4.49   +       0.182               +   +        11   42.7 -61.8  5.30  0.043
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Plasma Detection (PlD) --> not more informative (B = 0.0195, CI: -0.04675,  0.0857)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn PlD    SPE df logLik  AICc delta weight
+3  4.55   +       0.191               +     0.0621 11   41.7 -59.6  0.00  0.551
+4  4.54   +       0.196               +   + 0.0608 12   41.8 -57.6  1.98  0.205
+1  4.48   +       0.187               +            10   39.3 -57.3  2.33  0.172
+2  4.48   +       0.195               +   +        11   39.6 -55.5  4.08  0.072
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Any Detection (AnD) --> not more informative (B = -0.0168, CI: -0.0760,  0.0424)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn AnD    SPE df logLik  AICc delta weight
+3  4.56   +       0.187               +     0.0651 11   45.3 -67.1  0.00  0.609
+4  4.57   +       0.184               +   + 0.0677 12   45.5 -65.1  1.99  0.225
+1  4.49   +       0.183               +            10   42.6 -63.9  3.15  0.126
+2  4.49   +       0.182               +   +        11   42.6 -61.7  5.40  0.041
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Fat (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: Julian * Migratory Status & Event*Time (no informed null)
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 110, y: 60 (n = 170)
+table(birds$WaterNeonicDetection) # n: 150, y: 25 (n = 175)
+table(birds$AnyDetection) # n: 53, y: 124 (n = 177)
+table(birds$WaterOrInvertDetection) # n: 85, y: 92 (n = 177)
+table(birds$InvertPesticideDetection) # n: 56, y: 67 (n = 123)
+
+# Add Water Neonic Detection (WND)
+
+
+# Add Invert Pesticide Detection (IPD)
+
+
+# Add Water Or Invert Detection (WOI)
+
+
+# Add Plasma Detection (PlD)
+
+
+# Add Any Detection (AnD)
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Pectoral Muscle (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: Julian * Migratory Status & Event * Time (no informed null)
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Fattening Index (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: Time (no informed null)
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Tri (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: Null (nothing informative)
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Beta (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: % ag, time (no transformation), time is informed null
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Uric (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: exposed shoreline + time (no transformation), Julian * Migratory Status (no informed null)
+
+
+
+
+
+
+
+
+
+#--------------------------------------------------------------------------------------------#
+
+All Species Scaled Mass Index (reference is non-detection, results show detection):
+Informative Parameters from Chapter 1: Null (nothing informative)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

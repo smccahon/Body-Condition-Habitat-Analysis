@@ -193,6 +193,22 @@ models <- mget(model_names)
 
 aictab(models, modnames = model_names)
 
+# interaction needed between ag and SPEI?
+m1 <- lmer(PecSizeBest ~ PercentAg + (1|Species), 
+           data = birds.cs, REML = FALSE)
+m2 <- lmer(PecSizeBest ~ SPEI + (1|Species), 
+           data = birds.cs, REML = FALSE)
+m3 <- lmer(PecSizeBest ~ PercentAg*SPEI + (1|Species), 
+           data = birds.cs, REML = FALSE)
+m4 <- lmer(PecSizeBest ~ PercentAg + SPEI + (1|Species), 
+           data = birds.cs, REML = FALSE)
+
+model_names <- paste0("m", 1:4)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 confint(m2)
 
 # Model Selection with interactions (Stage 1) ----------------------------------

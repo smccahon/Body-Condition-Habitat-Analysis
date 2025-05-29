@@ -578,6 +578,18 @@ aictab(models, modnames = model_names)
 
 # model without interaction is much better
 
+# interaction between ag and SPEI needed? no
+m1 <- lm(sc.mass ~ SPEI + PercentAg, data = birds.cs)
+m2 <- lm(sc.mass ~ SPEI * PercentAg, data = birds.cs)
+m3 <- lm(sc.mass ~ SPEI, data = birds.cs)
+m4 <- lm(sc.mass ~ PercentAg, data = birds.cs)
+
+model_names <- paste0("m", 1:4)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
 # Model Selection with Informed Null (Stage 1) ---------------------------------
 
 # agriculture

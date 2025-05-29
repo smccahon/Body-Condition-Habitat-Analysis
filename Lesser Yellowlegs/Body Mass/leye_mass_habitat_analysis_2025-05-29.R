@@ -2,7 +2,7 @@
 # Lesser Yellowlegs Mass Habitat Analysis #
 #          Linear regression              #
 #          Created 2025-04-10             #
-#         Modified 2025-04-30             #
+#         Modified 2025-05-29             #
 #-----------------------------------------#
 
 # load packages
@@ -18,20 +18,28 @@ library(lubridate)
 options(digits = 3)
 
 # read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
 
 # ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
 
-birds$Detection <- as.factor(birds$Detection)
+# make detection columns a factor
+# ** note: did not look at neonics in inverts because there were only two detections
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
 
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
+
+# categorize other factor variables
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
 
@@ -135,6 +143,18 @@ m1 <- lm(Mass ~ PercentAg, data = leye)
 m2 <- lm(Mass ~ DominantCrop, data = leye)
 
 model_names <- paste0("m", 1:2)
+
+models <- mget(model_names)
+
+aictab(models, modnames = model_names)
+
+# interaction between ag and SPEI needed?
+m1 <- lm(Mass ~ PercentAg + Event * seconds_since_midnight, data = leye)
+m2 <- lm(Mass ~ SPEI + Event * seconds_since_midnight, data = leye)
+m3 <- lm(Mass ~ PercentAg + SPEI + Event * seconds_since_midnight, data = leye)
+m4 <- lm(Mass ~ SPEI * PercentAg + Event * seconds_since_midnight, data = leye)
+
+model_names <- paste0("m", 1:4)
 
 models <- mget(model_names)
 
@@ -394,4 +414,61 @@ ggplot(leye, aes(x = Event, y = Mass)) + geom_boxplot() +
         legend.text = element_text(size = 16),
         legend.title = element_text(size = 18),
         legend.position = "top")
+
+# do neonics explain any further variation of body mass than event * time? ----
+# informative covariates: event * time
+
+
+# summary statistics----
+table(leye$PlasmaDetection) # n: 31, y: 23 (n = 54)
+table(leye$WaterNeonicDetection) # n: 39, y: 14 (n = 53)
+table(leye$AnyDetection) # n: 17, y: 37 (n = 54)
+table(leye$WaterOrInvertDetection) # n: 25, y: 29 (n = 54)
+table(leye$InvertPesticideDetection) # n: 15, y: 15 (n = 30)
+
+mean(leye$OverallNeonic, na.rm = TRUE) # 2.39 ug/L
+sd(leye$OverallNeonic, na.rm = TRUE) # 10.2 ug/L
+
+# water neonic detection --> neonics not informative
+leye.clean.water <- leye.cs[!is.na(leye.cs$WaterNeonicDetection), ] #n = 53
+
+m1 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.clean.water)
+m2 <- lm(Mass ~ Event * seconds_since_midnight + WaterNeonicDetection, data = leye.clean.water)
+
+# invertebrate pesticide detection --> neonics not informative
+# all detections were in fall so m2 does not run
+leye.clean.invert <- leye.cs[!is.na(leye.cs$InvertPesticideDetection), ] #n = 30
+table(leye.clean.invert$InvertPesticideDetection, leye.clean.invert$Event)
+
+m1 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.clean.invert)
+# m2 <- lm(Mass ~ Event * seconds_since_midnight + InvertPesticideDetection, data = leye.clean.invert)
+
+m.detection <- lm(Mass ~ InvertPesticideDetection, data = leye.clean.invert)
+
+summary(m.detection)
+confint(m.detection)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+leye.clean.waterorinvert <- leye.cs[!is.na(leye.cs$WaterOrInvertDetection), ] #n = 54
+m1 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.clean.waterorinvert)
+m2 <- lm(Mass ~ Event * seconds_since_midnight + WaterOrInvertDetection, data = leye.clean.waterorinvert)
+
+# shorebird plasma detection --> neonics not informative
+m1 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.cs)
+m2 <- lm(Mass ~ Event * seconds_since_midnight + PlasmaDetection, data = leye.cs)
+
+# any detection (plasma or environmental) --> neonics not informative
+m1 <- lm(Mass ~ Event * seconds_since_midnight, data = leye.cs)
+m2 <- lm(Mass ~ Event * seconds_since_midnight + AnyDetection, data = leye.cs)
+
+### ...AIC 
+models <- list(m1, m2)
+model.sel(models)
+
+# model summaries:
+summary(m2)
+confint(m2)
+
+
+
 
