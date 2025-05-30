@@ -1,7 +1,7 @@
 #-------------------------------------------------------#
 # All Species Size-Corrected Body Mass Habitat Analysis #
 #                Created 2025-04-11                     #
-#               Modified 2025-05-13                     #
+#               Modified 2025-05-30                     #
 #-------------------------------------------------------#
 
 # load packages
@@ -17,19 +17,24 @@ library(lubridate)
 options(digits = 3)
 
 # read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
 
-# ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
+# make detection columns a factor
+# ** note: did not look at neonics in inverts because there were only two detections
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
+
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
-
-birds$Detection <- as.factor(birds$Detection)
 
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
@@ -54,10 +59,6 @@ birds$Permanence <- factor(birds$Permanence,
 
 birds$MigStatus <- factor(birds$MigStatus,
                           levels = c("Resident", "Migratory"))
-
-# Logarithmic transformation of mass
-birds <- birds %>% 
-  mutate(LogMass = log(Mass))
 
 # standardize time to something more simple ------------------------------------
 birds$Time <- strptime(birds$Time, format = "%H:%M")
@@ -743,7 +744,53 @@ summary(m)
 confint(m) # no effect of diversity
 
 
+# are neonics informative? ----
+# no informative parameters
+# summary statistics----
 
+table(birds$PlasmaDetection) # n: 108, y: 60 (n = 168)
+table(birds$WaterNeonicDetection) # n: 146, y: 25 (n = 171)
+table(birds$AnyDetection) # n: 51, y: 122 (n = 173)
+table(birds$WaterOrInvertDetection) # n: 83, y: 90 (n = 173)
+table(birds$InvertPesticideDetection) # n: 54, y: 65 (n = 119)
 
+mean(birds$OverallNeonic, na.rm = TRUE) # 8.81 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 79.6 ug/L
 
+# water neonic detection --> neonics not informative
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 171
 
+m1 <- lm(sc.mass ~ 1, data = birds.clean.water)
+m2 <- lm(sc.mass ~ WaterNeonicDetection, data = birds.clean.water)
+
+# invertebrate pesticide detection --> neonics not informative
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 119
+
+m1 <- lm(sc.mass ~ 1, data = birds.clean.invert)
+m2 <- lm(sc.mass ~ InvertPesticideDetection, data = birds.clean.invert)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 173
+
+m1 <- lm(sc.mass ~ 1, data = birds.clean.waterorinvert)
+m2 <- lm(sc.mass ~ WaterOrInvertDetection, data = birds.clean.waterorinvert)
+
+# shorebird plasma detection --> neonics not informative
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 168
+
+m1 <- lm(sc.mass ~ 1, data = birds.clean.plasma)
+m2 <- lm(sc.mass ~ PlasmaDetection, data = birds.clean.plasma)
+
+# any detection (plasma or environmental) --> neonics not informative
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 173
+
+m1 <- lm(sc.mass ~ 1, data = birds.clean.any)
+m2 <- lm(sc.mass ~ AnyDetection, data = birds.clean.any)
+
+### ...AIC 
+models <- list(m1, m2)
+model.sel(models)
+
+# model summaries:
+summary(m2)
+confint(m2)

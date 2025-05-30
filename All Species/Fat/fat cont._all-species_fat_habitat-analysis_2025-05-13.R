@@ -496,72 +496,143 @@ mean(birds$OverallNeonic, na.rm = TRUE) # 8.76 ug/L
 sd(birds$OverallNeonic, na.rm = TRUE) # 79.4 ug/L
 
 # water neonic detection --> neonics not informative
-birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 174
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 175
 
-m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.water,
+m1 <- lmer(Fat ~ Event * seconds_since_midnight + (1|Species), 
+           data = birds.clean.water,
            REML = FALSE)
-m2 <- lmer(LogMass ~ Event * seconds_since_midnight + WaterNeonicDetection + 
+
+m2 <- lmer(Fat ~ Julian * MigStatus + (1|Species), data = birds.clean.water,
+           REML = FALSE)
+
+m3 <- lmer(Fat ~ Event * seconds_since_midnight + Julian * MigStatus +
              (1|Species), data = birds.clean.water, REML = FALSE)
-m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
-           data = birds.clean.water, REML = FALSE)
-m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
-             WaterNeonicDetection, data = birds.clean.water, REML = FALSE)
+
+m4 <- lmer(Fat ~ Event * seconds_since_midnight + WaterNeonicDetection +
+             (1|Species), data = birds.clean.water, REML = FALSE)
+
+m5 <- lmer(Fat ~ Julian * MigStatus + WaterNeonicDetection +
+             (1|Species), data = birds.clean.water, REML = FALSE)
+
+m6 <- lmer(Fat ~ Event * seconds_since_midnight + 
+             Julian * MigStatus + WaterNeonicDetection +
+             (1|Species), data = birds.clean.water, REML = FALSE)
+
+m7 <- lmer(Fat ~ WaterNeonicDetection + (1|Species), data = birds.clean.water,
+           REML = FALSE)
 
 # invertebrate pesticide detection --> neonics not informative
-birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 122
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 123
 
-m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.water,
+m1 <- lmer(Fat ~ Event * seconds_since_midnight + (1|Species), 
+           data = birds.clean.invert,
            REML = FALSE)
-m2 <- lmer(LogMass ~ Event * seconds_since_midnight + InvertPesticideDetection + 
-             (1|Species), data = birds.clean.water, REML = FALSE)
-m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
-           data = birds.clean.water, REML = FALSE)
-m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
-             InvertPesticideDetection, data = birds.clean.water, REML = FALSE)
+
+m2 <- lmer(Fat ~ Julian * MigStatus + (1|Species), data = birds.clean.invert,
+           REML = FALSE)
+
+m3 <- lmer(Fat ~ Event * seconds_since_midnight + Julian * MigStatus +
+             (1|Species), data = birds.clean.invert, REML = FALSE)
+
+m4 <- lmer(Fat ~ Event * seconds_since_midnight + InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert, REML = FALSE)
+
+m5 <- lmer(Fat ~ Julian * MigStatus + InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert, REML = FALSE)
+
+m6 <- lmer(Fat ~ Event * seconds_since_midnight + 
+             Julian * MigStatus + InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert, REML = FALSE)
+
+m7 <- lmer(Fat ~ InvertPesticideDetection + (1|Species), data = birds.clean.invert,
+           REML = FALSE)
 
 # invertebrate or water pesticide detection (environmental detection) --> neonics not informative
-birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 176
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 177
 
-m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.waterorinvert,
+m1 <- lmer(Fat ~ Event * seconds_since_midnight + (1|Species), 
+           data = birds.clean.waterorinvert,
            REML = FALSE)
-m2 <- lmer(LogMass ~ Event * seconds_since_midnight + WaterOrInvertDetection + 
-             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
-m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
-           data = birds.clean.waterorinvert, REML = FALSE)
-m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
-             WaterOrInvertDetection, data = birds.clean.waterorinvert, REML = FALSE)
 
+m2 <- lmer(Fat ~ Julian * MigStatus + (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m3 <- lmer(Fat ~ Event * seconds_since_midnight + Julian * MigStatus +
+             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
+
+m4 <- lmer(Fat ~ Event * seconds_since_midnight + WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
+
+m5 <- lmer(Fat ~ Julian * MigStatus + WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
+
+m6 <- lmer(Fat ~ Event * seconds_since_midnight + 
+             Julian * MigStatus + WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert, REML = FALSE)
+
+m7 <- lmer(Fat ~ WaterOrInvertDetection + (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
 
 # shorebird plasma detection --> neonics not informative
-birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 169
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 170
 
-m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.plasma,
+m1 <- lmer(Fat ~ Event * seconds_since_midnight + (1|Species), 
+           data = birds.clean.plasma,
            REML = FALSE)
-m2 <- lmer(LogMass ~ Event * seconds_since_midnight + PlasmaDetection + 
+
+m2 <- lmer(Fat ~ Julian * MigStatus + (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+
+m3 <- lmer(Fat ~ Event * seconds_since_midnight + Julian * MigStatus +
              (1|Species), data = birds.clean.plasma, REML = FALSE)
-m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
-           data = birds.clean.plasma, REML = FALSE)
-m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
-             PlasmaDetection, data = birds.clean.plasma, REML = FALSE)
+
+m4 <- lmer(Fat ~ Event * seconds_since_midnight + PlasmaDetection +
+             (1|Species), data = birds.clean.plasma, REML = FALSE)
+
+m5 <- lmer(Fat ~ Julian * MigStatus + PlasmaDetection +
+             (1|Species), data = birds.clean.plasma, REML = FALSE)
+
+m6 <- lmer(Fat ~ Event * seconds_since_midnight + 
+             Julian * MigStatus + PlasmaDetection +
+             (1|Species), data = birds.clean.plasma, REML = FALSE)
+
+m7 <- lmer(Fat ~ PlasmaDetection + (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
 
 # any detection (plasma or environmental) --> neonics not informative
-birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 176
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 177
 
-m1 <- lmer(LogMass ~ Event * seconds_since_midnight + (1|Species), data = birds.clean.any,
+
+m1 <- lmer(Fat ~ Event * seconds_since_midnight + (1|Species), 
+           data = birds.clean.any,
            REML = FALSE)
-m2 <- lmer(LogMass ~ Event * seconds_since_midnight + AnyDetection + 
+
+m2 <- lmer(Fat ~ Julian * MigStatus + (1|Species), data = birds.clean.any,
+           REML = FALSE)
+
+m3 <- lmer(Fat ~ Event * seconds_since_midnight + Julian * MigStatus +
              (1|Species), data = birds.clean.any, REML = FALSE)
-m3 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species), 
-           data = birds.clean.any, REML = FALSE)
-m4 <- lmer(LogMass ~ Event * seconds_since_midnight + SPEI + (1|Species) +
-             AnyDetection, data = birds.clean.any, REML = FALSE)
+
+m4 <- lmer(Fat ~ Event * seconds_since_midnight + AnyDetection +
+             (1|Species), data = birds.clean.any, REML = FALSE)
+
+m5 <- lmer(Fat ~ Julian * MigStatus + AnyDetection +
+             (1|Species), data = birds.clean.any, REML = FALSE)
+
+m6 <- lmer(Fat ~ Event * seconds_since_midnight + 
+             Julian * MigStatus + AnyDetection +
+             (1|Species), data = birds.clean.any, REML = FALSE)
+
+m7 <- lmer(Fat ~ AnyDetection + (1|Species), data = birds.clean.any,
+           REML = FALSE)
+
 
 ### ...AIC 
-models <- list(m1, m2, m3, m4)
+models <- list(m1, m2, m3, m4, m5, m6, m7)
 model.sel(models)
 
 # model summaries:
-summary(m4)
-confint(m4)
+summary(m6)
+confint(m6)
 
 

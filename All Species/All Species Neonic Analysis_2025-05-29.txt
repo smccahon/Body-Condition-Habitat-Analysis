@@ -104,20 +104,89 @@ table(birds$AnyDetection) # n: 53, y: 124 (n = 177)
 table(birds$WaterOrInvertDetection) # n: 85, y: 92 (n = 177)
 table(birds$InvertPesticideDetection) # n: 56, y: 67 (n = 123)
 
-# Add Water Neonic Detection (WND)
+# Add Water Neonic Detection (WND) --> not informative (B = 0.1446, CI: -0.584,  0.870)
+
+Model selection table 
+    (Int) Evn scn_snc_mdn Evn:scn_snc_mdn   Jln MgS Jln:MgS WND df logLik AICc delta weight
+3  0.0535   +        1.63               + 0.496   +       +     13   -279  586  0.00  0.428
+2  0.4826                                 0.176   +       +      6   -287  586  0.69  0.303
+6 -0.0423   +        1.65               + 0.478   +       +   + 14   -279  588  2.21  0.142
+5  0.5250                                 0.199   +       +   +  7   -287  588  2.43  0.127
+1  1.0600   +        1.27               +                       10   -292  606 20.26  0.000
+4  1.2350   +        1.25               +                     + 11   -292  608 21.92  0.000
+7  1.0970                                                     +  4   -321  650 64.24  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
-# Add Invert Pesticide Detection (IPD)
+# Add Invert Pesticide Detection (IPD) --> not informative (B = 0.4415, CI: -0.0518,  0.931)
+
+Model selection table 
+    (Int) Evn scn_snc_mdn Evn:scn_snc_mdn     Jln MgS Jln:MgS IPD df logLik AICc delta weight
+5  0.0631                                  0.0950   +       +   +  7   -205  424  0.00  0.570
+2  0.3563                                  0.0767   +       +      6   -206  425  0.85  0.373
+3  0.6937   +    0.196300               +  0.3783   +       +      9   -205  430  6.00  0.028
+6 -0.1151   +   -0.000431               + -0.0205   +       +   + 10   -204  430  6.05  0.028
+4 -0.3595   +    0.059850               +                       +  7   -213  442 17.66  0.000
+1  0.1024   +    0.278900               +                          6   -217  446 22.32  0.000
+7  0.5964                                                       +  4   -228  465 41.19  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
-# Add Water Or Invert Detection (WOI)
+# Add Water Or Invert Detection (WOI) --> not informative (B = 0.2942, CI: 0.139,  0.72923)
+
+Model selection table 
+    (Int) Evn scn_snc_mdn Evn:scn_snc_mdn   Jln MgS Jln:MgS WOI df logLik AICc delta weight
+3  0.0440   +        1.63               + 0.512   +       +     13   -281  591  0.00  0.348
+6 -0.0926   +        1.64               + 0.250   +       +   + 14   -281  592  0.58  0.260
+2  0.4799                                 0.179   +       +      6   -290  592  1.09  0.202
+5  0.3003                                 0.149   +       +   +  7   -289  592  1.22  0.189
+4  0.8348   +        1.30               +                     + 11   -293  610 19.06  0.000
+1  1.0550   +        1.27               +                       10   -295  611 19.81  0.000
+7  0.7361                                                     +  4   -326  659 68.23  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
-# Add Plasma Detection (PlD)
 
 
-# Add Any Detection (AnD)
+# Add Plasma Detection (PlD) --> not informative (B =  0.271, CI: -0.202,  0.744)
 
+Model selection table 
+      (Int) Evn scn_snc_mdn Evn:scn_snc_mdn   Jln MgS Jln:MgS PlD df logLik AICc delta weight
+3  0.000229   +        1.66               + 0.442   +       +     13   -269  567  0.00  0.408
+2  0.408800                                 0.114   +       +      6   -278  568  0.93  0.256
+6 -0.102600   +        1.73               + 0.439   +       +   + 14   -269  568  1.10  0.235
+5  0.356300                                 0.137   +       +   +  7   -277  570  2.77  0.102
+1  1.039000   +        1.29               +                       10   -283  588 21.45  0.000
+4  0.986900   +        1.34               +                     + 11   -283  590 23.25  0.000
+7  1.202000                                                     +  4   -310  628 61.16  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+
+
+# Add Any Detection (AnD) --> not informative (B = 0.286, CI: -0.166,  0.7378)
+
+Model selection table 
+   (Int) Evn scn_snc_mdn Evn:scn_snc_mdn   Jln MgS Jln:MgS AnD df logLik AICc delta weight
+3  0.044   +        1.63               + 0.512   +       +     13   -281  591  0.00  0.379
+6 -0.127   +        1.68               + 0.298   +       +   + 14   -281  592  0.82  0.252
+2  0.480                                 0.179   +       +      6   -290  592  1.09  0.220
+5  0.273                                 0.196   +       +   +  7   -289  593  1.88  0.148
+4  0.779   +        1.34               +                     + 11   -293  610 18.98  0.000
+1  1.055   +        1.27               +                       10   -295  611 19.81  0.000
+7  1.107                                                     +  4   -327  662 70.85  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
@@ -126,9 +195,101 @@ table(birds$InvertPesticideDetection) # n: 56, y: 67 (n = 123)
 All Species Pectoral Muscle (reference is non-detection, results show detection):
 Informative Parameters from Chapter 1: Julian * Migratory Status & Event * Time (no informed null)
 
+# summary statistics----
+table(birds$PlasmaDetection) # n: 92, y: 51 (n = 143)
+table(birds$WaterNeonicDetection) # n: 139, y: 8 (n = 147)
+table(birds$AnyDetection) # n: 44, y: 105 (n = 149)
+table(birds$WaterOrInvertDetection) # n: 74, y: 75 (n = 149)
+table(birds$InvertPesticideDetection) # n: 55, y: 67 (n = 122)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 10.3 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 86.2 ug/L
 
 
 
+# Add Water Neonic Detection (WND) --> not informative (B = 0.193, CI: -0.944,  1.3261)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn    Jln MgS Jln:MgS WND df logLik AICc delta weight
+3 -7.81   +        2.12               + -0.843   +       +     11   -225  474  0.00  0.605
+6 -7.87   +        2.11               + -0.865   +       +   + 12   -225  476  2.26  0.196
+2 -6.63                                 -0.925   +       +      6   -232  477  3.05  0.132
+5 -6.63                                 -0.926   +       +   +  7   -232  479  4.90  0.052
+1 -6.56   +        2.23               +                         8   -232  482  7.96  0.011
+4 -6.52   +        2.24               +                      +  9   -232  484 10.17  0.004
+7 -5.44                                                      +  4   -242  493 19.35  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Invert Pesticide Detection (IPD) --> not informative (B = -0.224, CI: -0.636,  0.188)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn    Jln MgS Jln:MgS IPD df logLik AICc delta weight
+2 -6.66                                 -0.913   +       +      6   -184  380  0.00  0.521
+5 -6.53                                 -0.922   +       +   +  7   -183  382  1.10  0.300
+3 -6.57   +     -0.1284               + -0.825   +       +      9   -182  383  3.02  0.115
+6 -6.16   +     -0.0214               + -0.602   +       +   + 10   -181  385  4.37  0.059
+1 -5.07   +      0.0804               +                         6   -189  390 10.05  0.003
+4 -4.93   +      0.1559               +                      +  7   -188  392 11.17  0.002
+7 -5.37                                                      +  4   -194  397 16.69  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+
+# Add Water Or Invert Detection (WOI) --> not informative (B = -0.184, CI: -0.6495, 0.280)
+
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn    Jln MgS Jln:MgS WOI df logLik AICc delta weight
+3 -7.55   +        1.66               + -0.908   +       +     11   -228  480  0.00  0.435
+2 -6.63                                 -0.933   +       +      6   -234  481  1.07  0.254
+6 -7.26   +        1.66               + -0.719   +       +   + 12   -228  482  1.76  0.180
+5 -6.53                                 -0.926   +       +   +  7   -234  483  2.53  0.123
+1 -6.21   +        1.66               +                         8   -236  489  8.87  0.005
+4 -6.10   +        1.66               +                      +  9   -235  490  9.81  0.003
+7 -5.31                                                      +  4   -245  499 18.37  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Plasma Detection (PlD) --> not informative (B = 0.165, CI: -0.296,  0.627)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn    Jln MgS Jln:MgS PlD df logLik AICc delta weight
+2 -6.68                                 -0.960   +       +      6   -224  460  0.00  0.486
+3 -7.53   +        1.64               + -0.884   +       +     11   -219  462  1.58  0.220
+5 -6.75                                 -0.940   +       +   +  7   -224  462  1.71  0.206
+6 -7.71   +        1.62               + -0.896   +       +   + 12   -219  464  3.47  0.086
+1 -6.19   +        1.64               +                         8   -227  471 11.14  0.002
+4 -6.29   +        1.63               +                      +  9   -227  474 13.23  0.001
+7 -5.53                                                      +  4   -235  478 18.15  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Any Detection (AnD) --> not informative (B = 0.0586, CI: -0.4103,  0.5253)
+
+Model selection table 
+  (Int) Evn scn_snc_mdn Evn:scn_snc_mdn    Jln MgS Jln:MgS AnD df logLik AICc delta weight
+3 -7.55   +        1.66               + -0.908   +       +     11   -228  480  0.00  0.474
+2 -6.63                                 -0.933   +       +      6   -234  481  1.07  0.277
+6 -7.67   +        1.66               + -0.958   +       +   + 12   -228  483  2.31  0.150
+5 -6.63                                 -0.933   +       +   +  7   -234  484  3.28  0.092
+1 -6.21   +        1.66               +                         8   -236  489  8.87  0.006
+4 -6.18   +        1.67               +                      +  9   -236  492 11.13  0.002
+7 -5.52                                                      +  4   -245  499 18.81  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
@@ -137,8 +298,74 @@ Informative Parameters from Chapter 1: Julian * Migratory Status & Event * Time 
 All Species Fattening Index (reference is non-detection, results show detection):
 Informative Parameters from Chapter 1: Time (no informed null)
 
+# summary statistics----
+table(birds$PlasmaDetection) # n: 58, y: 27 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 20, y: 65 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 34, y: 51 (n = 85)
+table(birds$InvertPesticideDetection) # n: 21, y: 47 (n = 68)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 14.2 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 111 ug/L
 
 
+# Add Water Neonic Detection (WND) --> not informative (B = -0.3855, CI: -1.4170,  0.648)
+ 
+Model selection table 
+   (Int) scn_snc_mdn WND df logLik AICc delta weight
+1 0.0293       0.156      4   -124  257  0.00  0.702
+2 0.0376       0.151   +  5   -124  258  1.71  0.298
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Invert Pesticide Detection (IPD) --> not informative (B = -0.000887, CI: -0.6104,  0.608)
+
+Model selection table 
+   (Int) scn_snc_mdn IPD df logLik AICc delta weight
+1 0.0826       0.166      4   -100  209  0.00  0.762
+2 0.0833       0.167   +  5   -100  211  2.33  0.238
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Water Or Invert Detection (WOI) --> Not Informative (B = 0.0687, CI: -0.4571, 0.593)
+
+Model selection table 
+    (Int) scn_snc_mdn WOI df logLik AICc delta weight
+1  0.0293       0.156      4   -124  257  0.00   0.75
+2 -0.0163       0.151   +  5   -124  259  2.19   0.25
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Plasma Detection (PlD) --> not informative (B = -0.410, CI: -0.9063, 0.0866)
+
+Model selection table 
+   (Int) scn_snc_mdn PlD df logLik AICc delta weight
+2 0.1472       0.180   +  5   -123  256  0.00  0.547
+1 0.0293       0.156      4   -124  257  0.38  0.453
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+
+# Add Any Detection (AnD) --> not informative (B = -0.185, CI: -0.7487,  0.375)
+
+Model selection table 
+   (Int) scn_snc_mdn AnD df logLik AICc delta weight
+1 0.0293       0.156      4   -124  257  0.00  0.714
+2 0.1790       0.184   +  5   -124  258  1.83  0.286
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
@@ -150,7 +377,66 @@ Informative Parameters from Chapter 1: Null (nothing informative)
 
 
 
+# Add Water Neonic Detection (WND) --> not informative (B = -0.3110, CI: -1.353  0.750)
 
+Model selection table 
+  (Intrc) WtrND df logLik AICc delta weight
+1  0.0237        3   -120  246  0.00  0.719
+2  0.0259     +  4   -120  248  1.88  0.281
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Invert Pesticide Detection (IPD) --> not informative (B = -0.00111, CI: -0.70, 0.688)
+
+Model selection table 
+  (Intrc) InvPD df logLik AICc delta weight
+1    2.17        3   -123  253  0.00  0.754
+2    2.17     +  4   -123  256  2.24  0.246
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Water Or Invert Detection (WOI) --> not informative (B = 0.0863, CI: -0.485,  0.652)
+
+Model selection table 
+  (Intrc) WtOID df logLik AICc delta weight
+1    2.11        3   -149  304   0.0  0.741
+2    2.06     +  4   -149  306   2.1  0.259
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+**********************************************************************************
+* Add Plasma Detection (PlD) --> INFORMATIVE!!! (B = -0.488, CI: -0.969, -0.0103) *
+* birds with detections: 27, birds without detections: 58 (total = 85)            *
+***********************************************************************************
+
+Model selection table 
+  (Intrc) PlsmD df logLik AICc delta weight
+2  0.1921     +  4   -118  244   0.0  0.711
+1  0.0237        3   -120  246   1.8  0.289
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+# Plasma detection results with the three outliers (out of 85) removed: B: -0.1504; CI: -0.395, 0.0939 (no heteroscedasticity present)
+
+
+# Add Any Detection (AnD) --> not informative (B = -0.181 , CI: -0.705,  0.347)
+
+Model selection table 
+  (Intrc) AnyDt df logLik AICc delta weight
+1  0.0237        3   -120  246  0.00  0.705
+2  0.1742     +  4   -120  248  1.74  0.295
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 #--------------------------------------------------------------------------------------------#
@@ -158,22 +444,219 @@ Informative Parameters from Chapter 1: Null (nothing informative)
 All Species Beta (reference is non-detection, results show detection):
 Informative Parameters from Chapter 1: % ag, time (no transformation), time is informed null
 
+table(birds$PlasmaDetection) # n: 58, y: 27 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 20, y: 65 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 34, y: 51 (n = 85)
+table(birds$InvertPesticideDetection) # n: 21, y: 47 (n = 68)
+
+# Add Water Neonic Detection (WND) --> not informative (B = 0.2007, CI: -0.2400,  0.63891)
+
+Model selection table 
+  (Int) scn_snc_mdn WND   PrA df logLik AICc delta weight
+3 0.735     -0.1022     0.135  5  -52.0  115  0.00  0.628
+4 0.731     -0.0995   + 0.133  6  -51.6  116  1.50  0.296
+1 0.737     -0.1308            4  -55.7  120  5.06  0.050
+2 0.733     -0.1275   +        5  -55.2  121  6.42  0.025
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Invert Pesticide Detection (IPD) --> not informative (B = -0.1128, CI: -0.3254, 0.10068)
+
+
+Model selection table 
+  (Int) scn_snc_mdn IPD   PrA df logLik AICc delta weight
+3 0.716     -0.0969     0.185  5  -29.2 69.3  0.00  0.657
+4 0.799     -0.0807   + 0.192  6  -28.6 70.6  1.31  0.341
+1 0.739     -0.1298            4  -36.4 81.4 12.06  0.002
+2 0.774     -0.1236   +        5  -36.3 83.6 14.24  0.001
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+# Add Water Or Invert Detection (WOI) --> not informative (B = -0.0912, CI: -0.3218, 0.13945)
+
+Model selection table 
+  (Int) scn_snc_mdn WOI   PrA df logLik AICc delta weight
+3 0.735     -0.1022     0.135  5  -52.0  115  0.00  0.653
+4 0.796     -0.0922   + 0.144  6  -51.7  116  1.70  0.278
+1 0.737     -0.1308            4  -55.7  120  5.06  0.052
+2 0.746     -0.1296   +        5  -55.7  122  7.31  0.017
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
 
+# Add Plasma Detection (PlD) --> not informative (B = 0.0707, CI: -0.1500,  0.29238)
+
+Model selection table 
+  (Int) scn_snc_mdn PlD   PrA df logLik AICc delta weight
+3 0.735      -0.102     0.135  5  -52.0  115  0.00  0.672
+4 0.715      -0.106   + 0.142  6  -51.8  117  1.92  0.258
+1 0.737      -0.131            4  -55.7  120  5.06  0.053
+2 0.736      -0.131   +        5  -55.7  122  7.32  0.017
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Any Detection (AnD) --> not informative (B = -0.0509, CI: -0.2922, 0.1929)
+
+Model selection table 
+  (Int) scn_snc_mdn AnD   PrA df logLik AICc delta weight
+3 0.735     -0.1022     0.135  5  -52.0  115  0.00  0.691
+4 0.777     -0.0941   + 0.137  6  -51.9  117  2.14  0.236
+1 0.737     -0.1308            4  -55.7  120  5.06  0.055
+2 0.752     -0.1280   +        5  -55.7  122  7.30  0.018
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
 #--------------------------------------------------------------------------------------------#
 
 All Species Uric (reference is non-detection, results show detection):
-Informative Parameters from Chapter 1: exposed shoreline + time (no transformation), Julian * Migratory Status (no informed null)
+Informative Parameters from Chapter 1: exposed shoreline, time (no transformation), Julian * Migratory Status (no informed null)
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 57, y: 28 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 22, y: 63 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 37, y: 48 (n = 85)
+table(birds$InvertPesticideDetection) # n: 23, y: 44 (n = 67)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 14.2 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 111 ug/L
+
+
+# Add Water Neonic Detection (WND) --> not informative (B = -133.6, CI: -525.7,  258.4)
+
+Model selection table 
+   (Int) scn_snc_mdn  Jln MgS Jln:MgS Prc_Exp_Shr WND df logLik AICc delta weight
+11   666         105 -123   +       +      -116.6      8   -620 1258  0.00  0.609
+14   666         104 -123   +       +      -116.3   +  9   -620 1260  2.05  0.219
+8    686             -115   +       +      -136.8      7   -623 1262  4.19  0.075
+5    669         125 -173   +       +                  7   -623 1262  4.73  0.057
+13   686             -116   +       +      -136.3   +  8   -623 1264  6.12  0.029
+6    974         110                        -86.1      5   -629 1268 10.95  0.003
+2    694             -175   +       +                  6   -628 1269 11.13  0.002
+12   980         107                        -92.3   +  6   -628 1269 11.46  0.002
+1    979         125                                   4   -631 1270 12.15  0.001
+9    694             -175   +       +               +  7   -628 1270 12.98  0.001
+7    984         123                                +  5   -630 1271 13.15  0.001
+3    971                                   -105.9      4   -632 1272 14.34  0.000
+10   977                                   -111.8   +  5   -631 1272 14.74  0.000
+4    982                                            +  4   -634 1276 18.14  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+****************************************************************************************************************************
+# Add Invert Pesticide Detection (IPD) --> neonics informative but in opposite direction (B = -193.8, CI: -384.5,  -3.11)  *
+****************************************************************************************************************************
+
+Model selection table 
+   (Int) scn_snc_mdn  Jln MgS Jln:MgS Prc_Exp_Shr IPD df logLik AICc delta weight
+14   835       131.2 -127   +       +        -144   +  9   -484  989  0.00  0.563
+11   686        95.7 -125   +       +        -158      8   -486  990  1.29  0.296
+8    702             -114   +       +        -182      7   -489  993  4.36  0.064
+13   758             -113   +       +        -180   +  8   -488  995  6.40  0.023
+6   1009       119.9                         -151      5   -493  996  7.19  0.015
+5    658       118.2 -150   +       +                  7   -490  996  7.20  0.015
+12  1124       141.9                         -127   +  6   -491  996  7.36  0.014
+7   1156       162.3                                +  5   -494  999  9.82  0.004
+3    998                                     -165      4   -496 1001 11.59  0.002
+1    994       130.8                                   4   -496 1001 11.85  0.002
+2    674             -140   +       +                  6   -494 1001 12.46  0.001
+10  1042                                     -158   +  5   -496 1003 13.60  0.001
+9    741             -138   +       +               +  7   -494 1003 14.29  0.000
+4   1057                                            +  4   -499 1007 18.29  0.000 **not significant by itself
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+***************************************************************************************************************************
+**Singular fit warning: remove random effect; effect of detection is no longer significant (B = -193.8, CI: -396.5, 8.92) *
+***************************************************************************************************************************
+
+
+# Add Water Or Invert Detection (WOI) --> not informative (B = -139.9; CI: -307.4,   27.6)
+
+Model selection table 
+   (Int) scn_snc_mdn    Jln MgS Jln:MgS Prc_Exp_Shr WOI df logLik AICc delta weight
+14   757         128  -99.8   +       +      -100.0   +  9   -618 1257  0.00  0.462
+11   666         105 -122.6   +       +      -116.6      8   -620 1258  0.19  0.419
+8    686             -115.3   +       +      -136.8      7   -623 1262  4.38  0.052
+5    669         125 -173.1   +       +                  7   -623 1262  4.92  0.039
+13   721             -106.3   +       +      -132.4   +  8   -623 1264  6.44  0.018
+7   1093         142                                  +  5   -629 1268 11.06  0.002
+6    974         110                          -86.1      5   -629 1268 11.15  0.002
+2    694             -175.0   +       +                  6   -628 1269 11.32  0.002
+12  1064         126                          -66.0   +  6   -628 1269 11.46  0.002
+1    979         125                                     4   -631 1270 12.34  0.001
+9    756             -155.3   +       +               +  7   -627 1270 12.57  0.001
+3    971                                     -105.9      4   -632 1272 14.54  0.000
+10  1013                                      -98.2   +  5   -631 1274 16.31  0.000
+4   1045                                              +  4   -634 1276 18.23  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
 
+# Add Plasma Detection (PlD) --> not informative (B = -72.3, CI: -255.1,  110.4)
 
+Model selection table 
+   (Int) scn_snc_mdn  Jln MgS Jln:MgS Prc_Exp_Shr PlD df logLik AICc delta weight
+11   666         105 -123   +       +      -116.6      8   -620 1258  0.00  0.599
+14   701         106 -129   +       +      -122.7   +  9   -620 1259  1.89  0.233
+8    686             -115   +       +      -136.8      7   -623 1262  4.19  0.074
+5    669         125 -173   +       +                  7   -623 1262  4.73  0.056
+13   715             -120   +       +      -142.2   +  8   -623 1264  6.23  0.027
+12  1023         116                       -109.6   +  6   -627 1268 10.29  0.003
+6    974         110                        -86.1      5   -629 1268 10.95  0.003
+2    694             -175   +       +                  6   -628 1269 11.13  0.002
+1    979         125                                   4   -631 1270 12.15  0.001
+7   1010         131                                +  5   -630 1271 13.23  0.001
+9    695             -175   +       +               +  7   -628 1271 13.51  0.001
+10  1018                                   -127.4   +  5   -631 1272 14.32  0.000
+3    971                                   -105.9      4   -632 1272 14.34  0.000
+4    999                                            +  4   -634 1276 18.85  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
+
+
+
+# Add Any Detection (AnD) --> not informative (B = -181.9, CI: -374.9,  11.2)
+
+Model selection table 
+   (Int) scn_snc_mdn  Jln MgS Jln:MgS Prc_Exp_Shr AnD df logLik AICc delta weight
+14   819         135 -135   +       +      -105.8   +  9   -618 1257  0.00  0.550
+11   666         105 -123   +       +      -116.6      8   -620 1258  0.91  0.348
+8    686             -115   +       +      -136.8      7   -623 1262  5.10  0.043
+5    669         125 -173   +       +                  7   -623 1262  5.64  0.033
+13   741             -119   +       +      -135.1   +  8   -623 1264  7.10  0.016
+12  1136         141                        -76.1   +  6   -627 1267 10.29  0.003
+7   1154         158                                +  5   -628 1267 10.78  0.003
+6    974         110                        -86.1      5   -629 1268 11.87  0.001
+2    694             -175   +       +                  6   -628 1269 12.04  0.001
+1    979         125                                   4   -631 1270 13.06  0.001
+9    765             -179   +       +               +  7   -627 1270 13.77  0.001
+3    971                                   -105.9      4   -632 1272 15.26  0.000
+10  1054                                   -104.2   +  5   -631 1273 16.47  0.000
+4   1063                                            +  4   -634 1276 19.19  0.000
+Models ranked by AICc(x) 
+Random terms (all models): 
+  1 | Species
 
 
 
@@ -183,9 +666,66 @@ Informative Parameters from Chapter 1: exposed shoreline + time (no transformati
 All Species Scaled Mass Index (reference is non-detection, results show detection):
 Informative Parameters from Chapter 1: Null (nothing informative)
 
+table(birds$PlasmaDetection) # n: 108, y: 60 (n = 168)
+table(birds$WaterNeonicDetection) # n: 146, y: 25 (n = 171)
+table(birds$AnyDetection) # n: 51, y: 122 (n = 173)
+table(birds$WaterOrInvertDetection) # n: 83, y: 90 (n = 173)
+table(birds$InvertPesticideDetection) # n: 54, y: 65 (n = 119)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 8.81 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 79.6 ug/L
 
 
 
+# Add Water Neonic Detection (WND) --> not informative (B = -0.0671, CI: -0.517,  0.382)
+
+Model selection table 
+  (Intrc) WtrND df logLik AICc delta weight
+1  0.0138        2   -250  505  0.00   0.73
+2  0.0236     +  3   -250  507  1.98   0.27
+Models ranked by AICc(x) 
+
+
+
+
+# Add Invert Pesticide Detection (IPD) --> not informative (B = 0.0831, CI: -0.310,  0.476)
+
+Model selection table 
+  (Intrc) InvPD df logLik AICc delta weight
+1  0.0147        2   -177  358  0.00  0.724
+2 -0.0307     +  3   -177  360  1.93  0.276
+Models ranked by AICc(x)
+
+
+
+# Add Water Or Invert Detection (WOI) --> not informative (B = 0.0537, CI: -0.266,  0.374)
+
+Model selection table 
+    (Intrc) WtOID df logLik AICc delta weight
+1  8.44e-17        2   -255  515  0.00  0.727
+2 -2.79e-02     +  3   -255  517  1.96  0.273
+Models ranked by AICc(x) 
+
+
+
+
+# Add Plasma Detection (PlD) --> not informative (B = -0.04602, CI: -0.377,  0.285)
+
+Model selection table 
+   (Intrc) PlsmD df logLik AICc delta weight
+1 -0.01991        2   -244  493     0  0.731
+2 -0.00347     +  3   -244  495     2  0.269
+Models ranked by AICc(x) 
+
+
+
+# Add Any Detection (AnD) --> not informative (B =  0.0785, CI: -0.272,  0.429)
+
+Model selection table 
+    (Intrc) AnyDt df logLik AICc delta weight
+1  8.44e-17        2   -255  515  0.00  0.718
+2 -5.53e-02     +  3   -255  517  1.87  0.282
+Models ranked by AICc(x) 
 
 
 

@@ -1,7 +1,7 @@
 #----------------------------------------------#
 # All Species Refueling Rates Habitat Analysis #
 #            Created 2025-04-11                #
-#           Modified 2025-04-11                #
+#           Modified 2025-05-29               #
 #----------------------------------------------#
 
 # load packages
@@ -15,20 +15,27 @@ library(viridis)
 library(lubridate)
 library(nlme)
 
-# read data
-birds <- read.csv("Body_Condition_Habitat_Analysis_2025-03-31.csv")
+options(digits = 3)
 
-# ...make new columns ----
-# neonicotinoid detection column
-birds$Detection <- ifelse(birds$OverallNeonic > 0, 
-                          "Detection", "Non-detection")
+# read data
+birds <- read.csv("Body_Condition_Habitat_Analysis_2025-05-29.csv")
+
+# make detection columns a factor
+# ** note: did not look at neonics in inverts because there were only two detections
+birds$PlasmaDetection <- as.factor(birds$PlasmaDetection)
+
+birds$WaterNeonicDetection <- as.factor(birds$WaterNeonicDetection)
+
+birds$AnyDetection <- as.factor(birds$AnyDetection)
+
+birds$WaterOrInvertDetection <- as.factor(birds$WaterOrInvertDetection)
+
+birds$InvertPesticideDetection <- as.factor(birds$InvertPesticideDetection)
 
 # ...reorder and manipulate relevant factor variables ----
 birds$Sex <- factor(birds$Sex,
                     levels = c("M", "F"),
                     labels = c("Male", "Female"))
-
-birds$Detection <- as.factor(birds$Detection)
 
 birds$AgCategory <- factor(birds$AgCategory,
                            levels = c("Low", "Moderate", "High"))
@@ -70,6 +77,7 @@ birds$cos <- cos(2 * pi * birds$seconds_since_midnight / (24 * 3600))
 birds$formatted_time <- format(as.POSIXct(birds$seconds_since_midnight, 
                                           origin = "1970-01-01", tz = "UTC"), 
                                "%H:%M")
+
 
 # filter birds that only contain metabolite information (n = 29)
 birds <- birds %>% 
@@ -681,14 +689,14 @@ summary(lm(residuals ~ PercentAg, data = birds.cs)) # Adj. R2 = -0.0102
 
 
 
-# any relationships with tri or beta alone? nothing interesting for Tri ----
+# any relationships with beta alone?  ----
 
 # filter birds that only contain metabolite information (n = 89)
 birds <- birds %>% 
-  filter(!is.na(Tri))
+  filter(!is.na(Beta))
 
 
-# Only include species with at least three individuals
+# Only include species with at least three individuals #n = 90
 birds <- birds %>% 
   group_by(Species) %>% 
   filter(n() >= 3) %>% 
@@ -696,14 +704,14 @@ birds <- birds %>%
 
 # standardize data
 birds.cs <- birds %>%
-  mutate(across(where(is.numeric) & !matches("Tri"), scale))
+  mutate(across(where(is.numeric) & !matches("Beta"), scale))
 
 # is interaction between SPEI and Ag needed?
-m1 <- lmer(Tri ~ PercentAg + seconds_since_midnight + (1|Species), 
+m1 <- lmer(Beta ~ PercentAg + seconds_since_midnight + (1|Species), 
            data = birds.cs, REML = FALSE)
-m2 <- lmer(Tri ~ SPEI + seconds_since_midnight + (1|Species), 
+m2 <- lmer(Beta ~ SPEI + seconds_since_midnight + (1|Species), 
            data = birds.cs, REML = FALSE)
-m3 <- lmer(Tri ~ PercentAg * SPEI + seconds_since_midnight + (1|Species), 
+m3 <- lmer(Beta ~ PercentAg * SPEI + seconds_since_midnight + (1|Species), 
            data = birds.cs, REML = FALSE)
 
 model_names <- paste0("m", 1:3)
@@ -903,3 +911,481 @@ ggplot(d, aes(x = PercentAg, y = fit)) +
   
 
 plot(m.wls)
+
+# do neonics explain any further variation in BHB? ----
+# informative covariates: time (informed null), % ag
+
+table(birds$PlasmaDetection) # n: 58, y: 27 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 20, y: 65 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 34, y: 51 (n = 85)
+table(birds$InvertPesticideDetection) # n: 21, y: 47 (n = 68)
+
+# water neonic detection --> neonics not informative
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 90
+
+m1 <- lmer(Beta ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.water,
+           REML = FALSE)
+
+m2 <- lmer(Beta ~ seconds_since_midnight + WaterNeonicDetection +
+             (1|Species), data = birds.clean.water,
+           REML = FALSE)
+
+m3 <- lmer(Beta ~ seconds_since_midnight + PercentAg + (1|Species), 
+           data = birds.clean.water,
+           REML = FALSE)
+
+m4 <- lmer(Beta ~ seconds_since_midnight + PercentAg + 
+             WaterNeonicDetection + (1|Species), 
+           data = birds.clean.water,
+           REML = FALSE)
+
+
+# invertebrate pesticide detection --> neonics not informative
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 68
+
+m1 <- lmer(Beta ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.invert,
+           REML = FALSE)
+
+m2 <- lmer(Beta ~ seconds_since_midnight + InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert,
+           REML = FALSE)
+
+m3 <- lmer(Beta ~ seconds_since_midnight + PercentAg + (1|Species), 
+           data = birds.clean.invert,
+           REML = FALSE)
+
+m4 <- lmer(Beta ~ seconds_since_midnight + PercentAg + 
+             InvertPesticideDetection + (1|Species), 
+           data = birds.clean.invert,
+           REML = FALSE)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 85
+
+m1 <- lmer(Beta ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m2 <- lmer(Beta ~ seconds_since_midnight + WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m3 <- lmer(Beta ~ seconds_since_midnight + PercentAg + (1|Species), 
+           data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m4 <- lmer(Beta ~ seconds_since_midnight + PercentAg + 
+             WaterOrInvertDetection + (1|Species), 
+           data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+# shorebird plasma detection --> neonics not informative
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 85
+
+m1 <- lmer(Beta ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.plasma,
+           REML = FALSE)
+
+m2 <- lmer(Beta ~ seconds_since_midnight + PlasmaDetection +
+             (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+
+m3 <- lmer(Beta ~ seconds_since_midnight + PercentAg + (1|Species), 
+           data = birds.clean.plasma,
+           REML = FALSE)
+
+m4 <- lmer(Beta ~ seconds_since_midnight + PercentAg + 
+             PlasmaDetection + (1|Species), 
+           data = birds.clean.plasma,
+           REML = FALSE)
+
+# any detection (plasma or environmental) --> neonics not informative
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 85
+
+m1 <- lmer(Beta ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.any,
+           REML = FALSE)
+
+m2 <- lmer(Beta ~ seconds_since_midnight + AnyDetection +
+             (1|Species), data = birds.clean.any,
+           REML = FALSE)
+
+m3 <- lmer(Beta ~ seconds_since_midnight + PercentAg + (1|Species), 
+           data = birds.clean.any,
+           REML = FALSE)
+
+m4 <- lmer(Beta ~ seconds_since_midnight + PercentAg + 
+             AnyDetection + (1|Species), 
+           data = birds.clean.any,
+           REML = FALSE)
+
+
+
+### ...AIC 
+models <- list(m1, m2, m3, m4)
+model.sel(models)
+
+# model summaries:
+summary(m4)
+confint(m4)
+
+#-----------------------------------------------------------------------------#
+
+# do neonics explain any variation in fattening index? ----
+# informative covariates: time
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 58, y: 27 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 20, y: 65 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 34, y: 51 (n = 85)
+table(birds$InvertPesticideDetection) # n: 21, y: 47 (n = 68)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 14.2 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 111 ug/L
+
+
+# water neonic detection --> neonics not informative
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 90
+
+m1 <- lmer(PC1 ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.water,
+           REML = FALSE)
+
+m2 <- lmer(PC1 ~ seconds_since_midnight + WaterNeonicDetection +
+             (1|Species), data = birds.clean.water,
+           REML = FALSE)
+
+# invertebrate pesticide detection --> neonics not informative
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 68
+
+m1 <- lmer(PC1 ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.invert,
+           REML = FALSE)
+
+m2 <- lmer(PC1 ~ seconds_since_midnight + InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert,
+           REML = FALSE)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 85
+
+m1 <- lmer(PC1 ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m2 <- lmer(PC1 ~ seconds_since_midnight + WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+# shorebird plasma detection --> neonics not informative
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 85
+
+m1 <- lmer(PC1 ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.plasma,
+           REML = FALSE)
+
+m2 <- lmer(PC1 ~ seconds_since_midnight + PlasmaDetection +
+             (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+
+# any detection (plasma or environmental) --> neonics not informative
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 85
+
+m1 <- lmer(PC1 ~ seconds_since_midnight + (1|Species), 
+           data = birds.clean.any,
+           REML = FALSE)
+
+m2 <- lmer(PC1 ~ seconds_since_midnight + AnyDetection +
+             (1|Species), data = birds.clean.any,
+           REML = FALSE)
+
+
+### ...AIC 
+models <- list(m1, m2)
+model.sel(models)
+
+# model summaries:
+summary(m2)
+confint(m2)
+
+#-----------------------------------------------------------------------------#
+
+# do neonics explain any further variation in tri? ----
+# informative covariates: none
+
+# summary statistics----
+table(birds$PlasmaDetection) # n: 58, y: 27 (n = 85)
+table(birds$WaterNeonicDetection) # n: 81, y: 4 (n = 85)
+table(birds$AnyDetection) # n: 20, y: 65 (n = 85)
+table(birds$WaterOrInvertDetection) # n: 34, y: 51 (n = 85)
+table(birds$InvertPesticideDetection) # n: 21, y: 47 (n = 68)
+
+mean(birds$OverallNeonic, na.rm = TRUE) # 14.2 ug/L
+sd(birds$OverallNeonic, na.rm = TRUE) # 111 ug/L
+
+# water neonic detection --> neonics not informative
+birds.clean.water <- birds.cs[!is.na(birds.cs$WaterNeonicDetection), ] #n = 85
+
+m1 <- lmer(Tri ~ (1|Species), 
+           data = birds.clean.water,
+           REML = FALSE)
+
+m2 <- lmer(Tri ~ WaterNeonicDetection +
+             (1|Species), data = birds.clean.water,
+             REML = FALSE)
+
+# invertebrate pesticide detection --> neonics not informative
+birds.clean.invert <- birds.cs[!is.na(birds.cs$InvertPesticideDetection), ] #n = 72
+
+m1 <- lmer(Tri ~ (1|Species), 
+           data = birds.clean.invert,
+           REML = FALSE)
+
+m2 <- lmer(Tri ~ InvertPesticideDetection +
+             (1|Species), data = birds.clean.invert,
+           REML = FALSE)
+
+# invertebrate or water pesticide detection (environmental detection) --> neonics not informative
+birds.clean.waterorinvert <- birds.cs[!is.na(birds.cs$WaterOrInvertDetection), ] #n = 90
+
+m1 <- lmer(Tri ~ (1|Species), 
+           data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+m2 <- lmer(Tri ~ WaterOrInvertDetection +
+             (1|Species), data = birds.clean.waterorinvert,
+           REML = FALSE)
+
+# shorebird plasma detection --> NEONICS INFORMATIVE
+birds.clean.plasma <- birds.cs[!is.na(birds.cs$PlasmaDetection), ] #n = 85
+
+m1 <- lmer(Tri ~ (1|Species), 
+           data = birds.clean.plasma,
+           REML = FALSE)
+
+m2 <- lmer(Tri ~ PlasmaDetection +
+             (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+
+# any detection (plasma or environmental) --> neonics not informative
+birds.clean.any <- birds.cs[!is.na(birds.cs$AnyDetection), ] #n = 85
+
+m1 <- lmer(Tri ~ (1|Species), 
+           data = birds.clean.any,
+           REML = FALSE)
+
+m2 <- lmer(Tri ~ AnyDetection +
+             (1|Species), data = birds.clean.any,
+           REML = FALSE)
+
+
+### ...AIC 
+models <- list(m1, m2)
+model.sel(models)
+
+# model summaries:
+summary(m2)
+confint(m2)
+
+# model diagnostics for triglycerides and detection ----
+m <- lmer(Tri ~ PlasmaDetection +
+             (1|Species), data = birds.clean.plasma,
+           REML = FALSE)
+plot(predict(m),rstudent(m)) # large outlier influence
+
+birds$yhat <- predict(m)
+birds$rest <- rstudent(m)
+
+ggplot(birds, aes(x = yhat, y = rest, color = PlasmaDetection)) +
+  geom_point() + theme_minimal() +
+  labs(x = "Predicted Value",
+       y = "Studentized Residual",
+       color = "Neonicotinoid Detection")
+
+
+# weighted least squares
+birds %>% summarize(variance = var(Tri), weight = 1/var(Tri))
+
+# put results back into data frame
+birds <- birds %>% 
+  group_by(Species) %>% 
+  mutate(w = 1/var(Tri)) %>% 
+  ungroup()
+
+m.wls <- lmer(Tri ~ (1|Species) + PlasmaDetection,
+               data = birds,
+               REML = FALSE,
+               weights = w)
+
+plot(predict(m.wls),rstudent(m.wls)) # better
+
+summary(m.wls)
+confint(m.wls, method = "Wald") # neonic effect no longer significant
+
+# remove outliers?
+birds.or <- subset(birds.cs, Tri < 4)
+
+birds.or <- birds.or %>%
+  mutate(across(where(is.numeric) & !matches("Tri"), scale))
+
+m <- lmer(Tri ~ PlasmaDetection +
+            (1|Species), data = birds.or,
+          REML = FALSE)
+
+summary(m)
+confint(m) # no longer significant; outliers are influential
+
+plot(m)
+
+# plot plasma result:
+m <- lmer(Tri ~ PlasmaDetection +
+             (1|Species), data = birds,
+           REML = FALSE)
+
+d <- expand.grid(Species = unique(birds$Species),
+                 PlasmaDetection = unique(birds$PlasmaDetection))
+
+predictions <- predict(m, newdata = d, se.fit = TRUE, re.form = NA)
+
+d$fit <- predictions$fit
+
+d$lwr <- d$fit - 1.96 * predictions$se.fit
+d$upr <- d$fit + 1.96 * predictions$se.fit
+
+
+ggplot(d, aes(x = PlasmaDetection, y = fit)) +
+  geom_point(size = 5) + 
+  geom_errorbar(aes(ymin = lwr, ymax = upr),
+                width = 0.2, size = 1.5) +
+  geom_point(data = birds, aes(x = Buffered, y = Tri), 
+             size = 2.5, shape = 21, alpha = 0.4, inherit.aes = FALSE) +
+  theme_classic() +
+  labs(x = "Neonicotinoid Plasma Detection", 
+       y = "All Species Triglyceride Levels") +
+  theme(axis.title.x = element_text(size = 21,
+                                    margin = margin(t = 12)),
+        axis.title.y = element_text(size = 21,
+                                    margin = margin(r = 12)),
+        axis.text.x = element_text(size = 18),
+        axis.text.y = element_text(size = 18),
+        legend.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.position = "top")
+
+
+# compare variance across species and detection
+boxplot(Tri ~ Species, data = birds,
+        main = "Triglycerides by Species",
+        ylab = "Tri", xlab = "Species")
+
+boxplot(Tri ~ PlasmaDetection, data = birds,
+        main = "Detection",
+        ylab = "Tri", xlab = "Species")
+
+# model residuals by species
+m <- lmer(Tri ~ PlasmaDetection + (1|Species), data = birds)
+resid_data <- data.frame(resid = residuals(m), species = birds$Species)
+
+boxplot(resid ~ species, data = resid_data,
+        main = "Model Residuals by Species",
+        ylab = "Residuals")
+
+# model residuals by detection
+m <- lmer(Tri ~ PlasmaDetection + (1|Species), data = birds)
+resid_data <- data.frame(resid = residuals(m), detection = birds$PlasmaDetection)
+
+boxplot(resid ~ detection, data = resid_data,
+        main = "Model Residuals by Detection",
+        ylab = "Residuals")
+
+
+# fixed variance structure ----
+m.var <- lme(Tri ~ PlasmaDetection,
+             random = ~1|Species,
+             data = birds,
+             weights = varIdent(form = ~1|Species))
+
+summary(m.var)
+
+m.no.var <- lme(Tri ~ PlasmaDetection,
+                random = ~1|Species,
+                data = birds)
+
+AIC(m.no.var, m.var)
+
+
+plot(m.var, main = "Residuals vs Fitted (varIdent)") # variance structure does improve
+
+
+# variance power structure ----
+m.var.power <- lme(Tri ~ PlasmaDetection,
+                   random = ~1|Species,
+                   data = birds,
+                   weights = varPower(form = ~fitted(.)))
+
+summary(m.var.power)
+plot(m.var.power)
+
+confint(m.var.power)
+
+
+# try log transforming?
+m <- lmer(log(Tri) ~ PlasmaDetection + (1|Species), data = birds)
+
+plot(m) # slight megaphone still
+confint(m) # significant but heteroscedasticity still present
+
+
+
+m.var.power <- lme(Tri ~ PlasmaDetection,
+                   random = ~1|Species,
+                   data = birds,
+                   weights = varPower(form = ~fitted(.)))
+
+summary(m.var.power)
+plot(m.var.power)
+
+confint(m.var.power)
+
+# Fit a robust mixed-effects model ----
+library(robustlmm)
+model_robust <- rlmer(Tri ~ PlasmaDetection + (1 | Species), data = birds)
+
+summary(model_robust)
+
+
+# Extract fitted values and residuals
+fitted_vals <- fitted(model_robust)
+residuals_robust <- resid(model_robust)
+
+# Plot
+plot(fitted_vals, residuals_robust,
+     xlab = "Fitted Values",
+     ylab = "Robust Residuals",
+     main = "Residuals vs Fitted (rlmer)")
+abline(h = 0, col = "red", lty = 2)
+
+# effect size
+coef_df <- data.frame(
+  Model = c("rlmer", "lmer"),
+  Estimate = c(fixef(model_robust)[2], fixef(m)[2]),
+  SE = c(summary(model_robust)$coefficients[2, 2], summary(m)$coefficients[2, 2])
+)
+
+coef_df
+
+# Derive 95% CI
+est <- fixef(model_robust)["PlasmaDetectionY"]
+se <- summary(model_robust)$coefficients["PlasmaDetectionY", "Std. Error"]
+
+lower <- est - 1.96 * se
+upper <- est + 1.96 * se
+
+cat("Wald 95% CI for PlasmaDetection effect:", round(lower, 3), "to", round(upper, 3), "\n")
+
+# The robust linear mixed model estimated a negative effect of 
+# PlasmaDetection on Tri (Estimate = -0.297; 95% Wald CI: -0.635 to 0.042)
